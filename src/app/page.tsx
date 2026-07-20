@@ -44,12 +44,26 @@ export default function Home() {
   const [activePage, setActivePage] = useState<PageKey>('dashboard')
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const [dbSeeded, setDbSeeded] = useState(false)
+  const [sidebarStats, setSidebarStats] = useState<{ saplings: number; species: number; upazilas: number }>({ saplings: 0, species: 0, upazilas: 0 })
 
   useEffect(() => {
     fetch('/api/seed', { method: 'POST' })
       .then(() => setDbSeeded(true))
       .catch(() => setDbSeeded(true))
   }, [])
+
+  useEffect(() => {
+    if (!dbSeeded) return
+    fetch('/api/app-entries')
+      .then(r => r.json())
+      .then((data: any[]) => {
+        const total = data.reduce((s: number, e: any) => s + (e.count || 0), 0)
+        const species = new Set(data.filter((e: any) => e.species).map((e: any) => e.species)).size
+        const upazilas = new Set(data.filter((e: any) => e.upazila).map((e: any) => e.upazila)).size
+        setSidebarStats({ saplings: total, species, upazilas })
+      })
+      .catch(() => {})
+  }, [dbSeeded])
 
   const PageComponent = pageComponents[activePage]
   const currentNav = navItems.find((n) => n.key === activePage)!
@@ -134,8 +148,8 @@ export default function Home() {
                 <span className="text-[10px] bg-green-700 text-green-200 px-1.5 py-0.5 rounded">LIVE</span>
               )}
             </div>
-            <p className="text-xl font-bold text-white mt-1">3,647 saplings</p>
-            <p className="text-[11px] text-green-400 mt-0.5">9 Upazilas | 21 Species</p>
+            <p className="text-xl font-bold text-white mt-1">{sidebarStats.saplings.toLocaleString()} saplings</p>
+            <p className="text-[11px] text-green-400 mt-0.5">{sidebarStats.upazilas} Upazilas | {sidebarStats.species} Species</p>
           </div>
         </div>
       </aside>

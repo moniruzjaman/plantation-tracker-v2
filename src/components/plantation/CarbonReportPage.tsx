@@ -36,6 +36,8 @@ interface ReportSummary {
   uniqueUpazilas: number
   speciesBreakdown: Record<string, number>
   upazilaBreakdown: Record<string, number>
+  report17ColCount: number
+  ministryReportCount: number
 }
 
 export default function CarbonReportPage() {
@@ -139,7 +141,7 @@ export default function CarbonReportPage() {
 
           {/* Summary Cards */}
           {report && (
-            <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+            <div className="grid grid-cols-2 lg:grid-cols-6 gap-3">
               <Card className="border-green-200 bg-green-50/50">
                 <CardContent className="p-4">
                   <p className="text-xs text-green-600">Total Entries</p>
@@ -162,6 +164,18 @@ export default function CarbonReportPage() {
                 <CardContent className="p-4">
                   <p className="text-xs text-amber-600">Upazilas Covered</p>
                   <p className="text-2xl font-bold text-amber-800">{report.summary.uniqueUpazilas}</p>
+                </CardContent>
+              </Card>
+              <Card className="border-violet-200 bg-violet-50/50">
+                <CardContent className="p-4">
+                  <p className="text-xs text-violet-600">17-Col Report (Excel)</p>
+                  <p className="text-2xl font-bold text-violet-800">{report.summary.report17ColCount || 0}</p>
+                </CardContent>
+              </Card>
+              <Card className="border-rose-200 bg-rose-50/50">
+                <CardContent className="p-4">
+                  <p className="text-xs text-rose-600">Ministry Report (Excel)</p>
+                  <p className="text-2xl font-bold text-rose-800">{report.summary.ministryReportCount || 0}</p>
                 </CardContent>
               </Card>
             </div>

@@ -5,7 +5,7 @@ import {
   LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend,
   ResponsiveContainer, AreaChart, Area, PieChart, Pie, Cell, BarChart, Bar,
 } from 'recharts'
-import { TrendingUp, TreePine, AlertTriangle, Leaf, MapPin, Activity, Users, Sprout } from 'lucide-react'
+import { TrendingUp, TreePine, AlertTriangle, Leaf, MapPin, Activity, Users, Sprout, FileText, Mail } from 'lucide-react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 
 interface AppEntry {
@@ -19,6 +19,9 @@ interface AppEntry {
   saaoName: string | null
   latitude: number
   longitude: number
+  village: string | null
+  block: string | null
+  farmerMobile: string | null
 }
 
 export default function DashboardPage() {
@@ -48,14 +51,21 @@ export default function DashboardPage() {
     .map(([name, value]) => ({ name, value }))
   const PIE_COLORS = ['#059669', '#0891b2', '#7c3aed', '#ea580c', '#eab308', '#ec4899', '#6366f1', '#14b8a6', '#f97316', '#8b5cf6']
 
-  // Upazila breakdown for bar chart
-  const upazilaMap: Record<string, number> = {}
+  // District breakdown for bar chart
+  const districtMap: Record<string, number> = {}
   entries.forEach(e => {
-    if (e.upazila) upazilaMap[e.upazila] = (upazilaMap[e.upazila] || 0) + e.count
+    if (e.district) districtMap[e.district] = (districtMap[e.district] || 0) + e.count
   })
-  const upazilaBar = Object.entries(upazilaMap)
+  const districtBar = Object.entries(districtMap)
     .sort((a, b) => b[1] - a[1])
-    .map(([upazila, count]) => ({ upazila, count }))
+    .map(([district, count]) => ({ district, count }))
+
+  // Division breakdown
+  const divisionMap: Record<string, number> = {}
+  entries.forEach(e => {
+    // Derive division from district for the banner
+    if (e.district) divisionMap[e.district] = (divisionMap[e.district] || 0) + e.count
+  })
 
   // NDVI trend (simulated for now since no real NDVI data)
   const ndviTrend = [
@@ -145,15 +155,15 @@ export default function DashboardPage() {
           <CardHeader className="pb-2">
             <CardTitle className="text-base font-semibold flex items-center gap-2">
               <MapPin className="w-5 h-5 text-blue-600" />
-              Saplings by Upazila
+              Saplings by District
             </CardTitle>
           </CardHeader>
           <CardContent>
             <ResponsiveContainer width="100%" height={280}>
-              <BarChart data={upazilaBar} layout="vertical">
+              <BarChart data={districtBar} layout="vertical">
                 <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
                 <XAxis type="number" tick={{ fontSize: 11 }} />
-                <YAxis dataKey="upazila" type="category" tick={{ fontSize: 11 }} width={90} />
+                <YAxis dataKey="district" type="category" tick={{ fontSize: 11 }} width={90} />
                 <Tooltip />
                 <Bar dataKey="count" fill="#059669" name="Saplings" radius={[0, 4, 4, 0]} />
               </BarChart>
@@ -257,6 +267,42 @@ export default function DashboardPage() {
           </CardContent>
         </Card>
       </div>
+
+      {/* Ministry Report Summary */}
+      <Card className="shadow-sm border-l-4 border-l-amber-500">
+        <CardHeader className="pb-2">
+          <CardTitle className="text-base font-semibold flex items-center gap-2">
+            <Mail className="w-5 h-5 text-amber-600" />
+            Weekly Ministry Report Summary
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            <div className="bg-amber-50 rounded-lg p-3 border border-amber-200">
+              <p className="text-xs text-amber-700 font-medium">17-Column Report Entries</p>
+              <p className="text-2xl font-bold text-amber-800 mt-1">{entries.length}</p>
+              <p className="text-xs text-amber-600 mt-1">Weekly email to DAE &amp; MoA</p>
+            </div>
+            <div className="bg-green-50 rounded-lg p-3 border border-green-200">
+              <p className="text-xs text-green-700 font-medium">Total Saplings (Report)</p>
+              <p className="text-2xl font-bold text-green-800 mt-1">{totalSaplings.toLocaleString()}</p>
+              <p className="text-xs text-green-600 mt-1">Across {uniqueUpazilas} upazilas</p>
+            </div>
+            <div className="bg-blue-50 rounded-lg p-3 border border-blue-200">
+              <p className="text-xs text-blue-700 font-medium">Reporting Emails</p>
+              <p className="text-xs text-blue-800 font-mono mt-2 leading-relaxed">
+                admonitoring@dae.gov.bd<br/>
+                ddimplement@dae.gov.bd
+              </p>
+              <p className="text-xs text-blue-600 mt-1">Weekly submission required</p>
+            </div>
+          </div>
+          <div className="mt-3 bg-gray-50 rounded-lg p-3 text-xs text-muted-foreground">
+            <p className="font-medium text-gray-700 mb-1">Report Format:</p>
+            <p>সাপ্তাহিকভিত্তিক বৃক্ষরোপণের তথ্য (Weekly Plantation Report) - 17 columns including village, block, union, upazila, district, species, count, date, GPS coordinates, farmer &amp; SAAO details.</p>
+          </div>
+        </CardContent>
+      </Card>
 
       {/* Recent Planting Entries */}
       <Card className="shadow-sm">
