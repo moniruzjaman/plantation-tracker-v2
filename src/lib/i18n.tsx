@@ -100,7 +100,7 @@ const t: Translations = {
   // NDVI Legend (Map)
   ndviDenseForest: { bn: 'ঘন বন (>০.৬)', en: 'Dense Forest (>0.6)' },
   ndviVeryHealthy: { bn: 'অত্যন্ত সুস্থ (০.৫-০.৬)', en: 'Very Healthy (0.5-0.6)' },
-  ndviHealthy: { bn: 'সুস্থ (০.৪-০.৫)', en: 'Healthy (0.4-0.5)' },
+  ndviHealthyMap: { bn: 'সুস্থ (০.৪-০.৫)', en: 'Healthy (0.4-0.5)' },
   ndviModerate: { bn: 'মাঝারি (০.৩-০.৪)', en: 'Moderate (0.3-0.4)' },
   ndviSparse: { bn: 'তির্যক (০.২-০.৩)', en: 'Sparse (0.2-0.3)' },
   ndviStressedMap: { bn: 'পীড়িত (০.১-০.২)', en: 'Stressed (0.1-0.2)' },
@@ -287,25 +287,18 @@ const LangContext = createContext<LangContextType>({
   t: (key: string) => key,
 })
 
-function detectLanguage(): Lang {
-  if (typeof window === 'undefined') return 'bn'
-  // Check localStorage first (user preference)
-  const stored = localStorage.getItem('plantation-lang') as Lang | null
-  if (stored === 'en' || stored === 'bn') return stored
-  // Detect from browser/device language
-  const browserLang = navigator.language || (navigator as any).userLanguage || ''
-  // If browser language starts with 'en', use English; otherwise default to Bangla
-  if (browserLang.toLowerCase().startsWith('en')) return 'en'
-  return 'bn'
-}
-
 export function LangProvider({ children }: { children: ReactNode }) {
   const [lang, setLang] = useState<Lang>('bn')
 
   useEffect(() => {
-    // Detect language on mount (client-side only)
-    const detected = detectLanguage()
-    setLang(detected)
+    // Check for saved user preference on mount (client-side only)
+    // Bangla is always the default; only switch if user previously chose English
+    try {
+      const stored = localStorage.getItem('plantation-lang') as Lang | null
+      if (stored === 'en') {
+        setLang('en')
+      }
+    } catch {}
   }, [])
 
   useEffect(() => {
