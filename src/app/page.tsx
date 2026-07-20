@@ -1,25 +1,34 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import dynamic from 'next/dynamic'
 import {
   Map, BarChart3, AlertTriangle, TreePine, ClipboardList, Leaf,
-  Menu, X, TrendingUp,
+  Menu, X, TrendingUp, FileText, Users,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import DashboardPage from '@/components/plantation/DashboardPage'
-import MapViewPage from '@/components/plantation/MapViewPage'
 import MortalityAlertsPage from '@/components/plantation/MortalityAlertsPage'
 import CarbonReportPage from '@/components/plantation/CarbonReportPage'
 import FieldCollectorPage from '@/components/plantation/FieldCollectorPage'
+
+const MapViewPage = dynamic(() => import('@/components/plantation/MapViewPage'), {
+  ssr: false,
+  loading: () => (
+    <div className="h-full flex items-center justify-center">
+      <div className="w-8 h-8 border-4 border-green-500 border-t-transparent rounded-full animate-spin" />
+    </div>
+  ),
+})
 
 type PageKey = 'dashboard' | 'map' | 'alerts' | 'carbon' | 'field'
 
 const navItems: { key: PageKey; label: string; icon: React.ElementType; badge?: number }[] = [
   { key: 'dashboard', label: 'Dashboard', icon: BarChart3 },
   { key: 'map', label: 'Satellite Map', icon: Map },
-  { key: 'alerts', label: 'Mortality Alerts', icon: AlertTriangle, badge: 3 },
-  { key: 'carbon', label: 'Carbon Report', icon: Leaf },
+  { key: 'alerts', label: 'Mortality Alerts', icon: AlertTriangle },
+  { key: 'carbon', label: 'Report', icon: FileText },
   { key: 'field', label: 'Field Collector', icon: ClipboardList },
 ]
 
@@ -81,7 +90,7 @@ export default function Home() {
           </div>
           <p className="text-[11px] text-green-400 mt-2.5 flex items-center gap-1.5">
             <TrendingUp className="w-3.5 h-3.5" />
-            Satellite + AI + Carbon
+            25 Crore Tree Plantation
           </p>
         </div>
 
@@ -120,13 +129,13 @@ export default function Home() {
         <div className="p-3 border-t border-green-800">
           <div className="bg-green-800/80 rounded-lg p-3.5">
             <div className="flex items-center justify-between">
-              <p className="text-[11px] text-green-300 font-medium">Carbon Credits</p>
+              <p className="text-[11px] text-green-300 font-medium">Kurigram District</p>
               {dbSeeded && (
                 <span className="text-[10px] bg-green-700 text-green-200 px-1.5 py-0.5 rounded">LIVE</span>
               )}
             </div>
-            <p className="text-xl font-bold text-white mt-1">12,450 tCO₂e</p>
-            <p className="text-[11px] text-green-400 mt-0.5">Verified (VM0047)</p>
+            <p className="text-xl font-bold text-white mt-1">3,647 saplings</p>
+            <p className="text-[11px] text-green-400 mt-0.5">9 Upazilas | 21 Species</p>
           </div>
         </div>
       </aside>
@@ -148,7 +157,7 @@ export default function Home() {
           </div>
           <div className="flex items-center gap-3">
             <span className="text-xs sm:text-sm text-muted-foreground hidden sm:inline">
-              Last sync: 2 min ago
+              Kurigram, Rangpur Division
             </span>
             <div className="w-2.5 h-2.5 bg-green-500 rounded-full animate-pulse" />
           </div>

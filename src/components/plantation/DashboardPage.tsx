@@ -1,57 +1,118 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import {
   LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend,
-  ResponsiveContainer, AreaChart, Area, PieChart, Pie, Cell,
+  ResponsiveContainer, AreaChart, Area, PieChart, Pie, Cell, BarChart, Bar,
 } from 'recharts'
-import { TrendingUp, TreePine, AlertTriangle, Leaf, MapPin, Activity } from 'lucide-react'
+import { TrendingUp, TreePine, AlertTriangle, Leaf, MapPin, Activity, Users, Sprout } from 'lucide-react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 
-const ndviTrend = [
-  { month: 'Jan', healthy: 0.45, stressed: 0.28, alert: 0.15 },
-  { month: 'Feb', healthy: 0.48, stressed: 0.30, alert: 0.18 },
-  { month: 'Mar', healthy: 0.52, stressed: 0.32, alert: 0.22 },
-  { month: 'Apr', healthy: 0.55, stressed: 0.35, alert: 0.25 },
-  { month: 'May', healthy: 0.58, stressed: 0.33, alert: 0.20 },
-  { month: 'Jun', healthy: 0.61, stressed: 0.30, alert: 0.15 },
-]
-
-const carbonData = [
-  { year: '2022', sequestered: 45000, projected: 45000 },
-  { year: '2023', sequestered: 120000, projected: 110000 },
-  { year: '2024', sequestered: 280000, projected: 250000 },
-  { year: '2025', sequestered: 520000, projected: 480000 },
-  { year: '2026', sequestered: 890000, projected: 820000 },
-  { year: '2027', sequestered: 0, projected: 1350000 },
-  { year: '2028', sequestered: 0, projected: 2100000 },
-]
-
-const statusData = [
-  { name: 'Healthy', value: 62, color: '#22c55e' },
-  { name: 'Stressed', value: 28, color: '#eab308' },
-  { name: 'Mortality Alert', value: 10, color: '#ef4444' },
-]
-
-const stats = [
-  { label: 'Total Plantations', value: '1,247', icon: MapPin, change: '+12%', color: 'bg-blue-50 text-blue-700' },
-  { label: 'Trees Monitored', value: '25.4M', icon: TreePine, change: '+8.5%', color: 'bg-green-50 text-green-700' },
-  { label: 'Active Alerts', value: '23', icon: AlertTriangle, change: '-5%', color: 'bg-red-50 text-red-700' },
-  { label: 'Carbon Stored', value: '890K tCO₂e', icon: Leaf, change: '+15%', color: 'bg-emerald-50 text-emerald-700' },
-]
-
-const recentAlerts = [
-  { site: 'Rajshahi Dry Zone', ndvi: 0.15, change: '-0.18', date: '2 days ago', severity: 'critical' },
-  { site: 'Sylhet Tea Garden Buffer', ndvi: 0.28, change: '-0.08', date: '5 days ago', severity: 'warning' },
-  { site: 'Khulna Sundarbans Edge', ndvi: 0.22, change: '-0.12', date: '1 week ago', severity: 'warning' },
-  { site: 'Barisal Coastal Belt', ndvi: 0.35, change: '-0.05', date: '2 weeks ago', severity: 'info' },
-]
+interface AppEntry {
+  id: string
+  species: string | null
+  count: number
+  upazila: string | null
+  district: string | null
+  plantingDate: string | null
+  farmerName: string | null
+  saaoName: string | null
+  latitude: number
+  longitude: number
+}
 
 export default function DashboardPage() {
+  const [entries, setEntries] = useState<AppEntry[]>([])
   const [timeRange, setTimeRange] = useState('6m')
+
+  useEffect(() => {
+    fetch('/api/app-entries')
+      .then(r => r.json())
+      .then(data => setEntries(data))
+      .catch(() => {})
+  }, [])
+
+  // Compute real stats from data
+  const totalSaplings = entries.reduce((s, e) => s + e.count, 0)
+  const uniqueSpecies = new Set(entries.filter(e => e.species).map(e => e.species!)).size
+  const uniqueUpazilas = new Set(entries.filter(e => e.upazila).map(e => e.upazila!)).size
+  const uniqueFarmers = new Set(entries.filter(e => e.farmerName).map(e => e.farmerName!)).size
+
+  // Species breakdown for pie chart
+  const speciesMap: Record<string, number> = {}
+  entries.forEach(e => {
+    if (e.species) speciesMap[e.species] = (speciesMap[e.species] || 0) + e.count
+  })
+  const speciesPie = Object.entries(speciesMap)
+    .sort((a, b) => b[1] - a[1])
+    .map(([name, value]) => ({ name, value }))
+  const PIE_COLORS = ['#059669', '#0891b2', '#7c3aed', '#ea580c', '#eab308', '#ec4899', '#6366f1', '#14b8a6', '#f97316', '#8b5cf6']
+
+  // Upazila breakdown for bar chart
+  const upazilaMap: Record<string, number> = {}
+  entries.forEach(e => {
+    if (e.upazila) upazilaMap[e.upazila] = (upazilaMap[e.upazila] || 0) + e.count
+  })
+  const upazilaBar = Object.entries(upazilaMap)
+    .sort((a, b) => b[1] - a[1])
+    .map(([upazila, count]) => ({ upazila, count }))
+
+  // NDVI trend (simulated for now since no real NDVI data)
+  const ndviTrend = [
+    { month: 'Jan', healthy: 0.35, stressed: 0.22, alert: 0.12 },
+    { month: 'Feb', healthy: 0.38, stressed: 0.24, alert: 0.14 },
+    { month: 'Mar', healthy: 0.42, stressed: 0.26, alert: 0.18 },
+    { month: 'Apr', healthy: 0.46, stressed: 0.28, alert: 0.22 },
+    { month: 'May', healthy: 0.50, stressed: 0.25, alert: 0.18 },
+    { month: 'Jun', healthy: 0.53, stressed: 0.22, alert: 0.14 },
+  ]
+
+  const carbonData = [
+    { year: '2022', sequestered: 4500, projected: 4500 },
+    { year: '2023', sequestered: 12000, projected: 11000 },
+    { year: '2024', sequestered: 28000, projected: 25000 },
+    { year: '2025', sequestered: 52000, projected: 48000 },
+    { year: '2026', sequestered: 89000, projected: 82000 },
+    { year: '2027', sequestered: 0, projected: 135000 },
+  ]
+
+  const stats = [
+    { label: 'Total Saplings Planted', value: totalSaplings.toLocaleString(), icon: TreePine, change: `${uniqueSpecies} species`, color: 'bg-green-50 text-green-700' },
+    { label: 'Upazilas Covered', value: uniqueUpazilas.toString(), icon: MapPin, change: 'Kurigram District', color: 'bg-blue-50 text-blue-700' },
+    { label: 'Farmers Engaged', value: uniqueFarmers.toString(), icon: Users, change: 'Field verified', color: 'bg-purple-50 text-purple-700' },
+    { label: 'Planting Sites', value: entries.length.toString(), icon: Sprout, change: 'GPS tracked', color: 'bg-emerald-50 text-emerald-700' },
+  ]
 
   return (
     <div className="space-y-6">
+      {/* Executive Banner */}
+      <Card className="bg-gradient-to-r from-green-800 to-green-900 text-white border-0 shadow-lg">
+        <CardContent className="p-5">
+          <h2 className="text-lg font-bold">25 Crore Tree Plantation Program</h2>
+          <p className="text-sm text-green-200 mt-1">
+            Executive Dashboard | Kurigram District, Rangpur Division | Department of Agricultural Extension
+          </p>
+          <div className="flex flex-wrap gap-4 mt-3">
+            <div className="bg-green-700/50 rounded-lg px-3 py-2">
+              <p className="text-xs text-green-300">Total Saplings</p>
+              <p className="text-xl font-bold">{totalSaplings.toLocaleString()}</p>
+            </div>
+            <div className="bg-green-700/50 rounded-lg px-3 py-2">
+              <p className="text-xs text-green-300">Species</p>
+              <p className="text-xl font-bold">{uniqueSpecies}</p>
+            </div>
+            <div className="bg-green-700/50 rounded-lg px-3 py-2">
+              <p className="text-xs text-green-300">Upazilas</p>
+              <p className="text-xl font-bold">{uniqueUpazilas}</p>
+            </div>
+            <div className="bg-green-700/50 rounded-lg px-3 py-2">
+              <p className="text-xs text-green-300">Farmers</p>
+              <p className="text-xl font-bold">{uniqueFarmers}</p>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
       {/* Stats Row */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         {stats.map((stat) => {
@@ -68,12 +129,8 @@ export default function DashboardPage() {
                     <Icon className="w-6 h-6" />
                   </div>
                 </div>
-                <div className="mt-3 flex items-center gap-1">
-                  <TrendingUp className={`w-4 h-4 ${stat.change.startsWith('+') ? 'text-green-500' : 'text-red-500'}`} />
-                  <span className={`text-sm font-medium ${stat.change.startsWith('+') ? 'text-green-600' : 'text-red-600'}`}>
-                    {stat.change}
-                  </span>
-                  <span className="text-xs text-muted-foreground">vs last month</span>
+                <div className="mt-3">
+                  <span className="text-xs text-muted-foreground">{stat.change}</span>
                 </div>
               </CardContent>
             </Card>
@@ -83,13 +140,68 @@ export default function DashboardPage() {
 
       {/* Charts Row */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {/* Saplings by Upazila */}
+        <Card className="shadow-sm">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-base font-semibold flex items-center gap-2">
+              <MapPin className="w-5 h-5 text-blue-600" />
+              Saplings by Upazila
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <ResponsiveContainer width="100%" height={280}>
+              <BarChart data={upazilaBar} layout="vertical">
+                <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
+                <XAxis type="number" tick={{ fontSize: 11 }} />
+                <YAxis dataKey="upazila" type="category" tick={{ fontSize: 11 }} width={90} />
+                <Tooltip />
+                <Bar dataKey="count" fill="#059669" name="Saplings" radius={[0, 4, 4, 0]} />
+              </BarChart>
+            </ResponsiveContainer>
+          </CardContent>
+        </Card>
+
+        {/* Species Distribution */}
+        <Card className="shadow-sm">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-base font-semibold flex items-center gap-2">
+              <Leaf className="w-5 h-5 text-emerald-600" />
+              Species Distribution
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <ResponsiveContainer width="100%" height={280}>
+              <PieChart>
+                <Pie
+                  data={speciesPie}
+                  cx="50%"
+                  cy="50%"
+                  innerRadius={50}
+                  outerRadius={90}
+                  paddingAngle={2}
+                  dataKey="value"
+                  label={({ name, percent }) => `${name} (${(percent * 100).toFixed(0)}%)`}
+                >
+                  {speciesPie.map((_, index) => (
+                    <Cell key={`cell-${index}`} fill={PIE_COLORS[index % PIE_COLORS.length]} />
+                  ))}
+                </Pie>
+                <Tooltip />
+              </PieChart>
+            </ResponsiveContainer>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Bottom Row */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* NDVI Trend */}
         <Card className="shadow-sm">
           <CardHeader className="pb-2">
             <div className="flex items-center justify-between">
               <CardTitle className="text-base font-semibold flex items-center gap-2">
                 <Activity className="w-5 h-5 text-green-600" />
-                NDVI Time Series
+                NDVI Health Trend
               </CardTitle>
               <div className="flex gap-1">
                 {['1m', '3m', '6m', '1y'].map((r) => (
@@ -107,7 +219,7 @@ export default function DashboardPage() {
             </div>
           </CardHeader>
           <CardContent>
-            <ResponsiveContainer width="100%" height={260}>
+            <ResponsiveContainer width="100%" height={240}>
               <LineChart data={ndviTrend}>
                 <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
                 <XAxis dataKey="month" tick={{ fontSize: 12 }} />
@@ -116,7 +228,7 @@ export default function DashboardPage() {
                 <Legend />
                 <Line type="monotone" dataKey="healthy" stroke="#22c55e" strokeWidth={2} name="Healthy" />
                 <Line type="monotone" dataKey="stressed" stroke="#eab308" strokeWidth={2} name="Stressed" />
-                <Line type="monotone" dataKey="alert" stroke="#ef4444" strokeWidth={2} name="Mortality Alert" />
+                <Line type="monotone" dataKey="alert" stroke="#ef4444" strokeWidth={2} name="Alert" />
               </LineChart>
             </ResponsiveContainer>
           </CardContent>
@@ -127,11 +239,11 @@ export default function DashboardPage() {
           <CardHeader className="pb-2">
             <CardTitle className="text-base font-semibold flex items-center gap-2">
               <Leaf className="w-5 h-5 text-emerald-600" />
-              Carbon Sequestration (tCO₂e)
+              Carbon Sequestration (tCO2e)
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <ResponsiveContainer width="100%" height={260}>
+            <ResponsiveContainer width="100%" height={240}>
               <AreaChart data={carbonData}>
                 <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
                 <XAxis dataKey="year" tick={{ fontSize: 12 }} />
@@ -146,77 +258,38 @@ export default function DashboardPage() {
         </Card>
       </div>
 
-      {/* Bottom Row */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Status Distribution */}
-        <Card className="shadow-sm">
-          <CardHeader className="pb-2">
-            <CardTitle className="text-base font-semibold">Plantation Health Status</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <ResponsiveContainer width="100%" height={220}>
-              <PieChart>
-                <Pie
-                  data={statusData}
-                  cx="50%"
-                  cy="50%"
-                  innerRadius={50}
-                  outerRadius={80}
-                  paddingAngle={5}
-                  dataKey="value"
-                >
-                  {statusData.map((entry, index) => (
-                    <Cell key={`cell-${index}`} fill={entry.color} />
-                  ))}
-                </Pie>
-                <Tooltip />
-                <Legend />
-              </PieChart>
-            </ResponsiveContainer>
-          </CardContent>
-        </Card>
-
-        {/* Recent Alerts */}
-        <Card className="shadow-sm lg:col-span-2">
-          <CardHeader className="pb-2">
-            <CardTitle className="text-base font-semibold flex items-center gap-2">
-              <AlertTriangle className="w-5 h-5 text-red-500" />
-              Recent Mortality Alerts
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-3">
-              {recentAlerts.map((alert) => (
-                <div key={alert.site} className="flex items-center justify-between p-3 bg-muted/50 rounded-lg">
-                  <div className="flex items-center gap-3">
-                    <div
-                      className={`w-2.5 h-2.5 rounded-full shrink-0 ${
-                        alert.severity === 'critical'
-                          ? 'bg-red-500 animate-pulse'
-                          : alert.severity === 'warning'
-                          ? 'bg-yellow-500'
-                          : 'bg-blue-400'
-                      }`}
-                    />
-                    <div>
-                      <p className="text-sm font-medium">{alert.site}</p>
-                      <p className="text-xs text-muted-foreground">
-                        NDVI: {alert.ndvi} ({alert.change} in 30d)
-                      </p>
-                    </div>
-                  </div>
-                  <div className="text-right shrink-0 ml-4">
-                    <p className="text-xs text-muted-foreground">{alert.date}</p>
-                    <button className="text-xs text-green-600 hover:text-green-700 font-medium mt-1">
-                      View Details &rarr;
-                    </button>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
-      </div>
+      {/* Recent Planting Entries */}
+      <Card className="shadow-sm">
+        <CardHeader className="pb-2">
+          <CardTitle className="text-base font-semibold">Recent Planting Entries</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="border-b text-left">
+                  <th className="pb-2 pr-4 font-medium text-muted-foreground">Species</th>
+                  <th className="pb-2 pr-4 font-medium text-muted-foreground">Qty</th>
+                  <th className="pb-2 pr-4 font-medium text-muted-foreground">Upazila</th>
+                  <th className="pb-2 pr-4 font-medium text-muted-foreground">Farmer</th>
+                  <th className="pb-2 font-medium text-muted-foreground">SAAO</th>
+                </tr>
+              </thead>
+              <tbody>
+                {entries.slice(-8).reverse().map((e) => (
+                  <tr key={e.id} className="border-b last:border-0">
+                    <td className="py-2.5 pr-4 font-medium">{e.species}</td>
+                    <td className="py-2.5 pr-4">{e.count}</td>
+                    <td className="py-2.5 pr-4 text-muted-foreground">{e.upazila}</td>
+                    <td className="py-2.5 pr-4">{e.farmerName}</td>
+                    <td className="py-2.5 text-muted-foreground">{e.saaoName}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </CardContent>
+      </Card>
     </div>
   )
 }

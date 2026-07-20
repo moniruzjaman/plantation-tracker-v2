@@ -65,3 +65,34 @@ model FieldData {
   status      String     @default("pending")
   collectedAt DateTime   @default(now())
 }
+
+model AppEntry {
+  id              String   @id @default(cuid())
+  appSubmissionId String?
+  division        String?
+  region          String?
+  district        String?
+  upazila         String?
+  unionName       String?  @map("union")
+  village         String?
+  locationType    String?
+  seedlingSource  String?
+  address         String?
+  latitude        Float    @default(0)
+  longitude       Float    @default(0)
+  plantingDate    String?
+  species         String?
+  treeClass       String?
+  count           Int      @default(0)
+  ndvi            Float    @default(0)
+  farmerName      String?
+  farmerMobile    String?
+  saaoName        String?
+  saaoMobile      String?
+  moName          String?
+  moMobile        String?
+  comments        String?
+  block           String?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+}
