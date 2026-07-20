@@ -7,23 +7,11 @@ import {
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
-import dynamic from 'next/dynamic'
 import DashboardPage from '@/components/plantation/DashboardPage'
+import MapViewPage from '@/components/plantation/MapViewPage'
 import MortalityAlertsPage from '@/components/plantation/MortalityAlertsPage'
 import CarbonReportPage from '@/components/plantation/CarbonReportPage'
 import FieldCollectorPage from '@/components/plantation/FieldCollectorPage'
-
-const MapViewPage = dynamic(() => import('@/components/plantation/MapViewPage'), {
-  ssr: false,
-  loading: () => (
-    <div className="h-[calc(100vh-140px)] flex items-center justify-center bg-gray-100 rounded-xl">
-      <div className="flex flex-col items-center gap-3">
-        <div className="w-8 h-8 border-4 border-green-500 border-t-transparent rounded-full animate-spin" />
-        <p className="text-muted-foreground text-sm">Loading satellite map...</p>
-      </div>
-    </div>
-  ),
-})
 
 type PageKey = 'dashboard' | 'map' | 'alerts' | 'carbon' | 'field'
 
@@ -50,9 +38,8 @@ export default function Home() {
 
   useEffect(() => {
     fetch('/api/seed', { method: 'POST' })
-      .then((r) => r.json())
       .then(() => setDbSeeded(true))
-      .catch(() => setDbSeeded(true)) // already seeded
+      .catch(() => setDbSeeded(true))
   }, [])
 
   const PageComponent = pageComponents[activePage]
@@ -60,7 +47,6 @@ export default function Home() {
 
   return (
     <div className="min-h-screen bg-gray-50 flex">
-      {/* Mobile overlay */}
       {sidebarOpen && (
         <div
           className="fixed inset-0 bg-black/40 z-40 lg:hidden"
@@ -68,7 +54,6 @@ export default function Home() {
         />
       )}
 
-      {/* Sidebar */}
       <aside
         className={`fixed lg:static inset-y-0 left-0 z-50 w-64 bg-green-900 text-white flex flex-col transition-transform duration-200 ${
           sidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'
@@ -146,7 +131,6 @@ export default function Home() {
         </div>
       </aside>
 
-      {/* Main Content */}
       <main className="flex-1 flex flex-col min-w-0">
         <header className="bg-white border-b px-4 sm:px-6 py-3.5 flex items-center justify-between shrink-0 shadow-sm">
           <div className="flex items-center gap-3">
@@ -175,4 +159,4 @@ export default function Home() {
       </main>
     </div>
   )
-} 
+}

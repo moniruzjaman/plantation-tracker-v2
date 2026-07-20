@@ -1,12 +1,10 @@
 'use client'
 
 import { useState, useCallback, useEffect } from 'react'
-import { MapContainer, TileLayer, GeoJSON, LayersControl } from 'react-leaflet'
 import { Satellite, Eye, Calendar } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Card, CardContent } from '@/components/ui/card'
-import 'leaflet/dist/leaflet.css'
 
 const getNDVIColor = (ndvi: number) => {
   if (ndvi < 0.1) return '#8B0000'
@@ -69,13 +67,39 @@ const ndviLegend = [
   { label: 'Dead/Bare (<0.1)', color: '#8B0000' },
 ]
 
+// Inner component that uses leaflet - only rendered client-side
+function LeafletMap({ showNDVI, showSatellite, onEachFeature }: {
+  showNDVI: boolean
+  showSatellite: boolean
+  onEachFeature: (feature: any, layer: any) => void
+}) {
+  const { MapContainer, TileLayer, GeoJSON, LayersControl } = require('react-leaflet')
+  return (
+    <MapContainer center={[23.8, 90.4]} zoom={7} className="h-full w-full" style={{ minHeight: '400px' }}>
+      <LayersControl position="topright">
+        <LayersControl.BaseLayer checked={showSatellite} name="Satellite">
+          <TileLayer url="https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}" attribution="Esri" />
+        </LayersControl.BaseLayer>
+        <LayersControl.BaseLayer name="OpenStreetMap">
+          <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" attribution="&copy; OpenStreetMap" />
+        </LayersControl.BaseLayer>
+      </LayersControl>
+      {showNDVI && <GeoJSON data={samplePlantations as any} onEachFeature={onEachFeature} />}
+    </MapContainer>
+  )
+}
+
 export default function MapViewPage() {
   const [selectedDate, setSelectedDate] = useState('2026-06-15')
   const [showNDVI, setShowNDVI] = useState(true)
   const [showSatellite, setShowSatellite] = useState(true)
   const [mounted, setMounted] = useState(false)
 
-  useEffect(() => { setMounted(true) }, [])
+  useEffect(() => {
+    // Dynamic import of leaflet CSS only on client
+    import('leaflet/dist/leaflet.css')
+    setMounted(true)
+  }, [])
 
   const onEachFeature = useCallback((feature: any, layer: any) => {
     const p = feature.properties
@@ -104,7 +128,10 @@ export default function MapViewPage() {
   if (!mounted) {
     return (
       <div className="h-[calc(100vh-140px)] flex items-center justify-center bg-gray-100 rounded-xl">
-        <p className="text-muted-foreground">Loading map...</p>
+        <div className="flex flex-col items-center gap-3">
+          <div className="w-8 h-8 border-4 border-green-500 border-t-transparent rounded-full animate-spin" />
+          <p className="text-muted-foreground text-sm">Loading satellite map...</p>
+        </div>
       </div>
     )
   }
@@ -161,17 +188,7 @@ export default function MapViewPage() {
 
       {/* Map */}
       <div className="flex-1 relative rounded-xl overflow-hidden border shadow-sm">
-        <MapContainer center={[23.8, 90.4]} zoom={7} className="h-full w-full" style={{ minHeight: '400px' }}>
-          <LayersControl position="topright">
-            <LayersControl.BaseLayer checked={showSatellite} name="Satellite">
-              <TileLayer url="https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}" attribution="Esri" />
-            </LayersControl.BaseLayer>
-            <LayersControl.BaseLayer name="OpenStreetMap">
-              <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" attribution="&copy; OpenStreetMap" />
-            </LayersControl.BaseLayer>
-          </LayersControl>
-          {showNDVI && <GeoJSON data={samplePlantations as any} onEachFeature={onEachFeature} />}
-        </MapContainer>
+        <LeafletMap showNDVI={showNDVI} showSatellite={showSatellite} onEachFeature={onEachFeature} />
 
         {/* NDVI Legend */}
         <Card className="absolute bottom-4 right-4 z-[1000] shadow-lg">
