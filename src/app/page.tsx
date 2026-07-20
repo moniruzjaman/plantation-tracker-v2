@@ -174,7 +174,10 @@ export default function Home() {
           </div>
         </header>
         <div className="flex-1 p-4 sm:p-6 overflow-auto">
-          <pageComponents[activePage] />
+          {(() => {
+            const PageComponent = pageComponents[activePage]
+            return PageComponent ? <PageComponent /> : null
+          })()}
         </div>
       </main>
     </div>

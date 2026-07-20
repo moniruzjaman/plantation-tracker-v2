@@ -12,7 +12,7 @@ import { useLang } from '@/lib/i18n'
 export default function DashboardPage() {
   const [entries, setEntries] = useState<any[]>([])
   const [timeRange, setTimeRange] = useState('6m')
-  const { t } = useLang()
+  const { t, lang } = useLang()
 
   useEffect(() => {
     fetch('/api/app-entries')
@@ -43,13 +43,14 @@ export default function DashboardPage() {
     .sort((a, b) => b[1] - a[1])
     .map(([district, count]) => ({ district, count }))
 
+  const monthKeys = ['monthJan', 'monthFeb', 'monthMar', 'monthApr', 'monthMay', 'monthJun']
   const ndviTrend = [
-    { month: lang === 'bn' ? 'জানু' : 'Jan', healthy: 0.35, stressed: 0.22, alert: 0.12 },
-    { month: lang === 'bn' ? 'ফেব্রু' : 'Feb', healthy: 0.38, stressed: 0.24, alert: 0.14 },
-    { month: lang === 'bn' ? 'মার্চ' : 'Mar', healthy: 0.42, stressed: 0.26, alert: 0.18 },
-    { month: lang === 'bn' ? 'এপ্রিল' : 'Apr', healthy: 0.46, stressed: 0.28, alert: 0.22 },
-    { month: lang === 'bn' ? 'মে' : 'May', healthy: 0.50, stressed: 0.25, alert: 0.18 },
-    { month: lang === 'bn' ? 'জুন' : 'Jun', healthy: 0.53, stressed: 0.22, alert: 0.14 },
+    { month: t(monthKeys[0]), healthy: 0.35, stressed: 0.22, alert: 0.12 },
+    { month: t(monthKeys[1]), healthy: 0.38, stressed: 0.24, alert: 0.14 },
+    { month: t(monthKeys[2]), healthy: 0.42, stressed: 0.26, alert: 0.18 },
+    { month: t(monthKeys[3]), healthy: 0.46, stressed: 0.28, alert: 0.22 },
+    { month: t(monthKeys[4]), healthy: 0.50, stressed: 0.25, alert: 0.18 },
+    { month: t(monthKeys[5]), healthy: 0.53, stressed: 0.22, alert: 0.14 },
   ]
 
   const carbonData = [
@@ -235,7 +236,7 @@ export default function DashboardPage() {
             <div className="bg-amber-50 rounded-lg p-3 border border-amber-200">
               <p className="text-xs text-amber-700 font-medium">{t('report17ColEntries')}</p>
               <p className="text-2xl font-bold text-amber-800 mt-1">{entries.length}</p>
-              <p className="text-xs text-amber-600 mt-1">{lang === 'bn' ? 'DAE ও MoA তে সাপ্তাহিক ইমেইল' : 'Weekly email to DAE & MoA'}</p>
+              <p className="text-xs text-amber-600 mt-1">{t('weeklyEmailDae')}</p>
             </div>
             <div className="bg-green-50 rounded-lg p-3 border border-green-200">
               <p className="text-xs text-green-700 font-medium">{t('reportTotalSaplings')}</p>

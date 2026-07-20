@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import { AlertTriangle, MapPin, Calendar, Filter, Download } from 'lucide-react'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import {
@@ -13,6 +13,7 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table'
+import { useLang } from '@/lib/i18n'
 
 interface Alert {
   id: number
@@ -43,6 +44,7 @@ const priorityFilters = ['all', 'critical', 'high', 'medium'] as const
 const statusFilters = ['all', 'open', 'investigating', 'resolved'] as const
 
 export default function MortalityAlertsPage() {
+  const { t, lang } = useLang()
   const [filter, setFilter] = useState<'all' | 'critical' | 'high' | 'medium'>('all')
   const [statusFilter, setStatusFilter] = useState<'all' | 'open' | 'investigating' | 'resolved'>('all')
 
@@ -51,31 +53,45 @@ export default function MortalityAlertsPage() {
   )
   const totalLoss = filtered.reduce((sum, a) => sum + a.estimatedLoss, 0)
 
+  const priorityLabel: Record<string, string> = {
+    all: t('filterPriorityAll'),
+    critical: t('filterPriorityCritical'),
+    high: t('filterPriorityHigh'),
+    medium: t('filterPriorityMedium'),
+  }
+
+  const statusLabel: Record<string, string> = {
+    all: t('filterPriorityAll'),
+    open: t('statusOpen'),
+    investigating: t('statusInvestigating'),
+    resolved: t('statusResolved'),
+  }
+
   return (
     <div className="space-y-6">
       {/* Header Stats */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         <Card className="border-red-200 bg-red-50/50">
           <CardContent className="p-4">
-            <p className="text-sm text-red-600 font-medium">Critical Alerts</p>
+            <p className="text-sm text-red-600 font-medium">{t('criticalAlerts')}</p>
             <p className="text-2xl font-bold text-red-700">{alerts.filter((a) => a.priority === 'critical').length}</p>
           </CardContent>
         </Card>
         <Card className="border-orange-200 bg-orange-50/50">
           <CardContent className="p-4">
-            <p className="text-sm text-orange-600 font-medium">High Priority</p>
+            <p className="text-sm text-orange-600 font-medium">{t('highPriority')}</p>
             <p className="text-2xl font-bold text-orange-700">{alerts.filter((a) => a.priority === 'high').length}</p>
           </CardContent>
         </Card>
         <Card className="border-yellow-200 bg-yellow-50/50">
           <CardContent className="p-4">
-            <p className="text-sm text-yellow-600 font-medium">Open Cases</p>
+            <p className="text-sm text-yellow-600 font-medium">{t('openCases')}</p>
             <p className="text-2xl font-bold text-yellow-700">{alerts.filter((a) => a.status === 'open').length}</p>
           </CardContent>
         </Card>
         <Card className="bg-muted/50">
           <CardContent className="p-4">
-            <p className="text-sm text-muted-foreground font-medium">Est. Carbon Loss</p>
+            <p className="text-sm text-muted-foreground font-medium">{t('estCarbonLoss')}</p>
             <p className="text-2xl font-bold">{totalLoss.toLocaleString()} tCO₂e</p>
           </CardContent>
         </Card>
@@ -85,35 +101,35 @@ export default function MortalityAlertsPage() {
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div className="flex flex-wrap items-center gap-2">
           <Filter className="w-4 h-4 text-muted-foreground" />
-          <span className="text-sm text-muted-foreground">Priority:</span>
+          <span className="text-sm text-muted-foreground">{t('priorityLabel')}</span>
           {priorityFilters.map((p) => (
             <Button
               key={p}
               variant={filter === p ? 'default' : 'outline'}
               size="sm"
               onClick={() => setFilter(p)}
-              className="capitalize text-xs h-8"
+              className="text-xs h-8"
             >
-              {p}
+              {priorityLabel[p]}
             </Button>
           ))}
         </div>
         <div className="flex flex-wrap items-center gap-2">
-          <span className="text-sm text-muted-foreground">Status:</span>
+          <span className="text-sm text-muted-foreground">{t('statusLabel')}</span>
           {statusFilters.map((s) => (
             <Button
               key={s}
               variant={statusFilter === s ? 'secondary' : 'outline'}
               size="sm"
               onClick={() => setStatusFilter(s)}
-              className="capitalize text-xs h-8"
+              className="text-xs h-8"
             >
-              {s}
+              {statusLabel[s]}
             </Button>
           ))}
           <Button size="sm" className="gap-1.5 ml-2">
             <Download className="w-4 h-4" />
-            Export CSV
+            {t('exportCsv')}
           </Button>
         </div>
       </div>
@@ -124,14 +140,14 @@ export default function MortalityAlertsPage() {
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead className="text-left">Alert ID</TableHead>
-                <TableHead className="text-left">Plantation</TableHead>
-                <TableHead className="text-left">NDVI Drop</TableHead>
-                <TableHead className="text-left">Area (ha)</TableHead>
-                <TableHead className="text-left">Est. Loss</TableHead>
-                <TableHead className="text-left">Detected</TableHead>
-                <TableHead className="text-left">Status</TableHead>
-                <TableHead className="text-left">Action</TableHead>
+                <TableHead className="text-left">{t('alertId')}</TableHead>
+                <TableHead className="text-left">{t('plantation')}</TableHead>
+                <TableHead className="text-left">{t('ndviDrop')}</TableHead>
+                <TableHead className="text-left">{t('areaHa')}</TableHead>
+                <TableHead className="text-left">{t('estLoss')}</TableHead>
+                <TableHead className="text-left">{t('detected')}</TableHead>
+                <TableHead className="text-left">{t('statusLabel').replace(':', '')}</TableHead>
+                <TableHead className="text-left">{t('action')}</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -184,14 +200,14 @@ export default function MortalityAlertsPage() {
                           ? 'secondary'
                           : 'default'
                       }
-                      className="capitalize text-xs"
+                      className="text-xs"
                     >
-                      {alert.status}
+                      {statusLabel[alert.status] || alert.status}
                     </Badge>
                   </TableCell>
                   <TableCell>
                     <Button variant="link" size="sm" className="text-green-600 p-0 h-auto">
-                      View &rarr;
+                      {t('view')} &rarr;
                     </Button>
                   </TableCell>
                 </TableRow>

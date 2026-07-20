@@ -1,8 +1,8 @@
 'use client'
 
-import { useState, useCallback, useEffect } from 'react'
-import { Satellite, Eye, Calendar, MapPin } from 'lucide-react'
-import { useLang } from '@/lib/i18n'
+import { useState, useEffect } from 'react'
+import { Satellite, MapPin, Calendar } from 'lucide-react'
+import { useLang, type Lang } from '@/lib/i18n'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Card, CardContent } from '@/components/ui/card'
@@ -21,16 +21,6 @@ interface MapEntry {
   seedlingSource: string | null
 }
 
-const getNDVIColor = (ndvi: number) => {
-  if (ndvi < 0.1) return '#8B0000'
-  if (ndvi < 0.2) return '#CD853F'
-  if (ndvi < 0.3) return '#FFD700'
-  if (ndvi < 0.4) return '#9ACD32'
-  if (ndvi < 0.5) return '#228B22'
-  if (ndvi < 0.6) return '#006400'
-  return '#004d00'
-}
-
 const getSpeciesColor = (species: string) => {
   const s = species.toLowerCase()
   if (s.includes('পেয়ারা') || s.includes('peyar')) return '#059669'
@@ -40,36 +30,27 @@ const getSpeciesColor = (species: string) => {
   return '#0891b2'
 }
 
-const ndviLegend = [
-  { label: 'Dense Forest (>0.6)', color: '#004d00' },
-  { label: 'Very Healthy (0.5-0.6)', color: '#006400' },
-  { label: 'Healthy (0.4-0.5)', color: '#228B22' },
-  { label: 'Moderate (0.3-0.4)', color: '#9ACD32' },
-  { label: 'Sparse (0.2-0.3)', color: '#FFD700' },
-  { label: 'Stressed (0.1-0.2)', color: '#CD853F' },
-  { label: 'Dead/Bare (<0.1)', color: '#8B0000' },
+const getSpeciesLegend = (t: (key: string) => string) => [
+  { label: `${t('legendGuava')} (পেয়ারা)`, color: '#059669' },
+  { label: `${t('legendMalta')} (মাল্টা)`, color: '#7c3aed' },
+  { label: `${t('legendLemon')} (লেবু)`, color: '#ea580c' },
+  { label: `${t('legendMango')} (আম)`, color: '#eab308' },
+  { label: `${t('legendOther')}`, color: '#0891b2' },
 ]
 
-const speciesLegend = [
-  { label: 'Guava (পেয়ারা)', color: '#059669' },
-  { label: 'Malta (মাল্টা)', color: '#7c3aed' },
-  { label: 'Lemon (লেবু)', color: '#ea580c' },
-  { label: 'Mango (আম)', color: '#eab308' },
-]
-
-function LeafletMap({ entries, showSatellite, upazilaFilter }: {
+function LeafletMap({ entries, showSatellite, upazilaFilter, t, lang }: {
   entries: MapEntry[]
   showSatellite: boolean
   upazilaFilter: string
+  t: (key: string) => string
+  lang: Lang
 }) {
-  const { MapContainer, TileLayer, Marker, Popup, LayersControl, CircleMarker } = require('react-leaflet')
-  const L = require('leaflet')
+  const { MapContainer, TileLayer, LayersControl, CircleMarker, Popup } = require('react-leaflet')
 
   const filtered = upazilaFilter === 'all'
     ? entries
     : entries.filter(e => e.upazila === upazilaFilter)
 
-  // Calculate center from data
   const validEntries = entries.filter(e => e.latitude && e.longitude)
   const centerLat = validEntries.length
     ? validEntries.reduce((s, e) => s + e.latitude, 0) / validEntries.length
@@ -81,10 +62,10 @@ function LeafletMap({ entries, showSatellite, upazilaFilter }: {
   return (
     <MapContainer center={[centerLat, centerLng]} zoom={10} className="h-full w-full" style={{ minHeight: '400px' }}>
       <LayersControl position="topright">
-        <LayersControl.BaseLayer checked={showSatellite} name="Satellite">
+        <LayersControl.BaseLayer checked={showSatellite} name={t('layerSatellite')}>
           <TileLayer url="https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}" attribution="Esri" />
         </LayersControl.BaseLayer>
-        <LayersControl.BaseLayer name="OpenStreetMap">
+        <LayersControl.BaseLayer name={t('layerOSM')}>
           <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" attribution="&copy; OpenStreetMap" />
         </LayersControl.BaseLayer>
       </LayersControl>
@@ -110,7 +91,7 @@ function LeafletMap({ entries, showSatellite, upazilaFilter }: {
                 </h3>
                 <table style={{ fontSize: 12, width: '100%' }}>
                   <tbody>
-                    <tr><td style={{ color: '#666', paddingRight: 8 }}>{t('popupQuantity')}</td><td style={{ fontWeight: 600 }}>{entry.count} {t('saplings')}</td></tr>
+                    <tr><td style={{ color: '#666', paddingRight: 8 }}>{t('popupQuantity')}</td><td style={{ fontWeight: 600 }}>{entry.count} {t('popupSaplings')}</td></tr>
                     <tr><td style={{ color: '#666' }}>{t('popupUpazila')}</td><td style={{ fontWeight: 600 }}>{entry.upazila || '-'}</td></tr>
                     <tr><td style={{ color: '#666' }}>{t('popupDistrict')}</td><td>{entry.district || '-'}</td></tr>
                     <tr><td style={{ color: '#666' }}>{t('popupDate')}</td><td>{entry.plantingDate || '-'}</td></tr>
@@ -133,7 +114,7 @@ export default function MapViewPage() {
   const [entries, setEntries] = useState<MapEntry[]>([])
   const [selectedDate, setSelectedDate] = useState('2026-06-20')
   const [showSatellite, setShowSatellite] = useState(true)
-  const { t } = useLang()
+  const { t, lang } = useLang()
   const [mounted, setMounted] = useState(false)
   const [upazilaFilter, setUpazilaFilter] = useState('all')
 
@@ -153,6 +134,8 @@ export default function MapViewPage() {
   const filteredSaplings = upazilaFilter === 'all'
     ? entries.reduce((s, e) => s + e.count, 0)
     : entries.filter(e => e.upazila === upazilaFilter).reduce((s, e) => s + e.count, 0)
+
+  const speciesLegend = getSpeciesLegend(t)
 
   if (!mounted) {
     return (
@@ -208,7 +191,7 @@ export default function MapViewPage() {
 
       {/* Map */}
       <div className="flex-1 relative rounded-xl overflow-hidden border shadow-sm">
-        <LeafletMap entries={entries} showSatellite={showSatellite} upazilaFilter={upazilaFilter} />
+        <LeafletMap entries={entries} showSatellite={showSatellite} upazilaFilter={upazilaFilter} t={t} lang={lang} />
 
         {/* Species Legend */}
         <Card className="absolute bottom-4 right-4 z-[1000] shadow-lg">
