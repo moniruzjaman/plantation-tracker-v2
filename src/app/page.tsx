@@ -7,11 +7,23 @@ import {
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
+import dynamic from 'next/dynamic'
 import DashboardPage from '@/components/plantation/DashboardPage'
-import MapViewPage from '@/components/plantation/MapViewPage'
 import MortalityAlertsPage from '@/components/plantation/MortalityAlertsPage'
 import CarbonReportPage from '@/components/plantation/CarbonReportPage'
 import FieldCollectorPage from '@/components/plantation/FieldCollectorPage'
+
+const MapViewPage = dynamic(() => import('@/components/plantation/MapViewPage'), {
+  ssr: false,
+  loading: () => (
+    <div className="h-[calc(100vh-140px)] flex items-center justify-center bg-gray-100 rounded-xl">
+      <div className="flex flex-col items-center gap-3">
+        <div className="w-8 h-8 border-4 border-green-500 border-t-transparent rounded-full animate-spin" />
+        <p className="text-muted-foreground text-sm">Loading satellite map...</p>
+      </div>
+    </div>
+  ),
+})
 
 type PageKey = 'dashboard' | 'map' | 'alerts' | 'carbon' | 'field'
 
@@ -163,4 +175,4 @@ export default function Home() {
       </main>
     </div>
   )
-}
+} 
