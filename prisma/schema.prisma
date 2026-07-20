@@ -1,9 +1,3 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
-// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
-// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
-
 generator client {
   provider = "prisma-client-js"
 }
@@ -13,20 +7,61 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-model User {
-  id        String   @id @default(cuid())
-  email     String   @unique
-  name      String?
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+model Plantation {
+  id          String   @id @default(cuid())
+  name        String
+  district    String
+  areaHa      Float
+  trees       Int
+  ndvi        Float    @default(0.0)
+  status      String   @default("healthy")
+  latitude    Float
+  longitude   Float
+  species     String   @default("Mixed")
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  alerts      Alert[]
+  carbonData  CarbonData[]
+  fieldData   FieldData[]
 }
 
-model Post {
-  id        String   @id @default(cuid())
-  title     String
-  content   String?
-  published Boolean  @default(false)
-  authorId  String
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+model Alert {
+  id            String     @id @default(cuid())
+  plantationId  String
+  plantation    Plantation @relation(fields: [plantationId], references: [id], onDelete: Cascade)
+  ndviCurrent   Float
+  ndviBaseline  Float
+  ndviDrop      Float
+  priority      String     @default("medium")
+  status        String     @default("open")
+  areaAffected  Float      @default(0)
+  estimatedLoss Float      @default(0)
+  detectedAt    DateTime   @default(now())
+  resolvedAt    DateTime?
+}
+
+model CarbonData {
+  id            String     @id @default(cuid())
+  plantationId  String
+  plantation    Plantation @relation(fields: [plantationId], references: [id], onDelete: Cascade)
+  year          Int
+  verifiedTco2e Float      @default(0)
+  projectedTco2e Float     @default(0)
+  agbTc         Float      @default(0)
+  bgbTc         Float      @default(0)
+  totalBiomass  Float      @default(0)
+}
+
+model FieldData {
+  id          String     @id @default(cuid())
+  plantationId String
+  plantation  Plantation @relation(fields: [plantationId], references: [id], onDelete: Cascade)
+  species     String
+  dbh         Float      @default(0)
+  height      Float      @default(0)
+  gpsLat      Float
+  gpsLon      Float
+  notes       String?
+  status      String     @default("pending")
+  collectedAt DateTime   @default(now())
 }
