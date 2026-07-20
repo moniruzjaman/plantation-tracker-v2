@@ -7,26 +7,12 @@ import {
 } from 'recharts'
 import { TrendingUp, TreePine, AlertTriangle, Leaf, MapPin, Activity, Users, Sprout, FileText, Mail } from 'lucide-react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-
-interface AppEntry {
-  id: string
-  species: string | null
-  count: number
-  upazila: string | null
-  district: string | null
-  plantingDate: string | null
-  farmerName: string | null
-  saaoName: string | null
-  latitude: number
-  longitude: number
-  village: string | null
-  block: string | null
-  farmerMobile: string | null
-}
+import { useLang } from '@/lib/i18n'
 
 export default function DashboardPage() {
-  const [entries, setEntries] = useState<AppEntry[]>([])
+  const [entries, setEntries] = useState<any[]>([])
   const [timeRange, setTimeRange] = useState('6m')
+  const { t } = useLang()
 
   useEffect(() => {
     fetch('/api/app-entries')
@@ -35,15 +21,13 @@ export default function DashboardPage() {
       .catch(() => {})
   }, [])
 
-  // Compute real stats from data
-  const totalSaplings = entries.reduce((s, e) => s + e.count, 0)
-  const uniqueSpecies = new Set(entries.filter(e => e.species).map(e => e.species!)).size
-  const uniqueUpazilas = new Set(entries.filter(e => e.upazila).map(e => e.upazila!)).size
-  const uniqueFarmers = new Set(entries.filter(e => e.farmerName).map(e => e.farmerName!)).size
+  const totalSaplings = entries.reduce((s: number, e: any) => s + (e.count || 0), 0)
+  const uniqueSpecies = new Set(entries.filter((e: any) => e.species).map((e: any) => e.species)).size
+  const uniqueUpazilas = new Set(entries.filter((e: any) => e.upazila).map((e: any) => e.upazila)).size
+  const uniqueFarmers = new Set(entries.filter((e: any) => e.farmerName).map((e: any) => e.farmerName)).size
 
-  // Species breakdown for pie chart
   const speciesMap: Record<string, number> = {}
-  entries.forEach(e => {
+  entries.forEach((e: any) => {
     if (e.species) speciesMap[e.species] = (speciesMap[e.species] || 0) + e.count
   })
   const speciesPie = Object.entries(speciesMap)
@@ -51,30 +35,21 @@ export default function DashboardPage() {
     .map(([name, value]) => ({ name, value }))
   const PIE_COLORS = ['#059669', '#0891b2', '#7c3aed', '#ea580c', '#eab308', '#ec4899', '#6366f1', '#14b8a6', '#f97316', '#8b5cf6']
 
-  // District breakdown for bar chart
   const districtMap: Record<string, number> = {}
-  entries.forEach(e => {
+  entries.forEach((e: any) => {
     if (e.district) districtMap[e.district] = (districtMap[e.district] || 0) + e.count
   })
   const districtBar = Object.entries(districtMap)
     .sort((a, b) => b[1] - a[1])
     .map(([district, count]) => ({ district, count }))
 
-  // Division breakdown
-  const divisionMap: Record<string, number> = {}
-  entries.forEach(e => {
-    // Derive division from district for the banner
-    if (e.district) divisionMap[e.district] = (divisionMap[e.district] || 0) + e.count
-  })
-
-  // NDVI trend (simulated for now since no real NDVI data)
   const ndviTrend = [
-    { month: 'Jan', healthy: 0.35, stressed: 0.22, alert: 0.12 },
-    { month: 'Feb', healthy: 0.38, stressed: 0.24, alert: 0.14 },
-    { month: 'Mar', healthy: 0.42, stressed: 0.26, alert: 0.18 },
-    { month: 'Apr', healthy: 0.46, stressed: 0.28, alert: 0.22 },
-    { month: 'May', healthy: 0.50, stressed: 0.25, alert: 0.18 },
-    { month: 'Jun', healthy: 0.53, stressed: 0.22, alert: 0.14 },
+    { month: lang === 'bn' ? 'জানু' : 'Jan', healthy: 0.35, stressed: 0.22, alert: 0.12 },
+    { month: lang === 'bn' ? 'ফেব্রু' : 'Feb', healthy: 0.38, stressed: 0.24, alert: 0.14 },
+    { month: lang === 'bn' ? 'মার্চ' : 'Mar', healthy: 0.42, stressed: 0.26, alert: 0.18 },
+    { month: lang === 'bn' ? 'এপ্রিল' : 'Apr', healthy: 0.46, stressed: 0.28, alert: 0.22 },
+    { month: lang === 'bn' ? 'মে' : 'May', healthy: 0.50, stressed: 0.25, alert: 0.18 },
+    { month: lang === 'bn' ? 'জুন' : 'Jun', healthy: 0.53, stressed: 0.22, alert: 0.14 },
   ]
 
   const carbonData = [
@@ -87,43 +62,39 @@ export default function DashboardPage() {
   ]
 
   const stats = [
-    { label: 'Total Saplings Planted', value: totalSaplings.toLocaleString(), icon: TreePine, change: `${uniqueSpecies} species`, color: 'bg-green-50 text-green-700' },
-    { label: 'Upazilas Covered', value: uniqueUpazilas.toString(), icon: MapPin, change: 'Kurigram District', color: 'bg-blue-50 text-blue-700' },
-    { label: 'Farmers Engaged', value: uniqueFarmers.toString(), icon: Users, change: 'Field verified', color: 'bg-purple-50 text-purple-700' },
-    { label: 'Planting Sites', value: entries.length.toString(), icon: Sprout, change: 'GPS tracked', color: 'bg-emerald-50 text-emerald-700' },
+    { label: t('statTotalSaplings'), value: totalSaplings.toLocaleString(), icon: TreePine, change: `${uniqueSpecies} ${t('species')}`, color: 'bg-green-50 text-green-700' },
+    { label: t('statUpazilas'), value: uniqueUpazilas.toString(), icon: MapPin, change: lang === 'bn' ? 'কুড়িগ্রাম জেলা' : 'Kurigram District', color: 'bg-blue-50 text-blue-700' },
+    { label: t('statFarmers'), value: uniqueFarmers.toString(), icon: Users, change: t('fieldVerified'), color: 'bg-purple-50 text-purple-700' },
+    { label: t('statSites'), value: entries.length.toString(), icon: Sprout, change: t('gpsTracked'), color: 'bg-emerald-50 text-emerald-700' },
   ]
 
   return (
     <div className="space-y-6">
-      {/* Executive Banner */}
       <Card className="bg-gradient-to-r from-green-800 to-green-900 text-white border-0 shadow-lg">
         <CardContent className="p-5">
-          <h2 className="text-lg font-bold">25 Crore Tree Plantation Program</h2>
-          <p className="text-sm text-green-200 mt-1">
-            Executive Dashboard | Kurigram District, Rangpur Division | Department of Agricultural Extension
-          </p>
+          <h2 className="text-lg font-bold">{t('dashBannerTitle')}</h2>
+          <p className="text-sm text-green-200 mt-1">{t('dashBannerSub')}</p>
           <div className="flex flex-wrap gap-4 mt-3">
             <div className="bg-green-700/50 rounded-lg px-3 py-2">
-              <p className="text-xs text-green-300">Total Saplings</p>
+              <p className="text-xs text-green-300">{t('totalSaplingsCard')}</p>
               <p className="text-xl font-bold">{totalSaplings.toLocaleString()}</p>
             </div>
             <div className="bg-green-700/50 rounded-lg px-3 py-2">
-              <p className="text-xs text-green-300">Species</p>
+              <p className="text-xs text-green-300">{t('uniqueSpecies')}</p>
               <p className="text-xl font-bold">{uniqueSpecies}</p>
             </div>
             <div className="bg-green-700/50 rounded-lg px-3 py-2">
-              <p className="text-xs text-green-300">Upazilas</p>
+              <p className="text-xs text-green-300">{t('upazilas')}</p>
               <p className="text-xl font-bold">{uniqueUpazilas}</p>
             </div>
             <div className="bg-green-700/50 rounded-lg px-3 py-2">
-              <p className="text-xs text-green-300">Farmers</p>
+              <p className="text-xs text-green-300">{t('statFarmers')}</p>
               <p className="text-xl font-bold">{uniqueFarmers}</p>
             </div>
           </div>
         </CardContent>
       </Card>
 
-      {/* Stats Row */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         {stats.map((stat) => {
           const Icon = stat.icon
@@ -148,14 +119,12 @@ export default function DashboardPage() {
         })}
       </div>
 
-      {/* Charts Row */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Saplings by Upazila */}
         <Card className="shadow-sm">
           <CardHeader className="pb-2">
             <CardTitle className="text-base font-semibold flex items-center gap-2">
               <MapPin className="w-5 h-5 text-blue-600" />
-              Saplings by District
+              {t('chartByDistrict')}
             </CardTitle>
           </CardHeader>
           <CardContent>
@@ -165,36 +134,28 @@ export default function DashboardPage() {
                 <XAxis type="number" tick={{ fontSize: 11 }} />
                 <YAxis dataKey="district" type="category" tick={{ fontSize: 11 }} width={90} />
                 <Tooltip />
-                <Bar dataKey="count" fill="#059669" name="Saplings" radius={[0, 4, 4, 0]} />
+                <Bar dataKey="count" fill="#059669" name={t('saplingsLabel')} radius={[0, 4, 4, 0]} />
               </BarChart>
             </ResponsiveContainer>
           </CardContent>
         </Card>
 
-        {/* Species Distribution */}
         <Card className="shadow-sm">
           <CardHeader className="pb-2">
             <CardTitle className="text-base font-semibold flex items-center gap-2">
               <Leaf className="w-5 h-5 text-emerald-600" />
-              Species Distribution
+              {t('chartSpeciesDist')}
             </CardTitle>
           </CardHeader>
           <CardContent>
             <ResponsiveContainer width="100%" height={280}>
               <PieChart>
-                <Pie
-                  data={speciesPie}
-                  cx="50%"
-                  cy="50%"
-                  innerRadius={50}
-                  outerRadius={90}
-                  paddingAngle={2}
-                  dataKey="value"
+                <Pie data={speciesPie} cx="50%" cy="50%" innerRadius={50} outerRadius={90} paddingAngle={2} dataKey="value"
                   label={({ name, percent }) => `${name} (${(percent * 100).toFixed(0)}%)`}
                 >
                   {speciesPie.map((_, index) => (
                     <Cell key={`cell-${index}`} fill={PIE_COLORS[index % PIE_COLORS.length]} />
-                  ))}
+                ))}
                 </Pie>
                 <Tooltip />
               </PieChart>
@@ -203,27 +164,21 @@ export default function DashboardPage() {
         </Card>
       </div>
 
-      {/* Bottom Row */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* NDVI Trend */}
         <Card className="shadow-sm">
           <CardHeader className="pb-2">
             <div className="flex items-center justify-between">
               <CardTitle className="text-base font-semibold flex items-center gap-2">
                 <Activity className="w-5 h-5 text-green-600" />
-                NDVI Health Trend
+                {t('chartNdviTrend')}
               </CardTitle>
               <div className="flex gap-1">
                 {['1m', '3m', '6m', '1y'].map((r) => (
-                  <button
-                    key={r}
-                    onClick={() => setTimeRange(r)}
+                  <button key={r} onClick={() => setTimeRange(r)}
                     className={`px-2.5 py-1 text-xs rounded-md transition-colors ${
                       timeRange === r ? 'bg-green-100 text-green-700 font-medium' : 'text-muted-foreground hover:bg-muted'
                     }`}
-                  >
-                    {r}
-                  </button>
+                  >{r}</button>
                 ))}
               </div>
             </div>
@@ -236,20 +191,19 @@ export default function DashboardPage() {
                 <YAxis domain={[0, 0.8]} tick={{ fontSize: 12 }} />
                 <Tooltip />
                 <Legend />
-                <Line type="monotone" dataKey="healthy" stroke="#22c55e" strokeWidth={2} name="Healthy" />
-                <Line type="monotone" dataKey="stressed" stroke="#eab308" strokeWidth={2} name="Stressed" />
-                <Line type="monotone" dataKey="alert" stroke="#ef4444" strokeWidth={2} name="Alert" />
+                <Line type="monotone" dataKey="healthy" stroke="#22c55e" strokeWidth={2} name={t('ndviHealthy')} />
+                <Line type="monotone" dataKey="stressed" stroke="#eab308" strokeWidth={2} name={t('ndviStressed')} />
+                <Line type="monotone" dataKey="alert" stroke="#ef4444" strokeWidth={2} name={t('ndviAlert')} />
               </LineChart>
             </ResponsiveContainer>
           </CardContent>
         </Card>
 
-        {/* Carbon Sequestration */}
         <Card className="shadow-sm">
           <CardHeader className="pb-2">
             <CardTitle className="text-base font-semibold flex items-center gap-2">
               <Leaf className="w-5 h-5 text-emerald-600" />
-              Carbon Sequestration (tCO2e)
+              {t('chartCarbon')}
             </CardTitle>
           </CardHeader>
           <CardContent>
@@ -257,11 +211,11 @@ export default function DashboardPage() {
               <AreaChart data={carbonData}>
                 <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
                 <XAxis dataKey="year" tick={{ fontSize: 12 }} />
-                <YAxis tick={{ fontSize: 12 }} tickFormatter={(v) => `${v / 1000}K`} />
+                <YAxis tick={{ fontSize: 12 }} tickFormatter={(v: number) => `${v / 1000}K`} />
                 <Tooltip formatter={(v: number) => v.toLocaleString()} />
                 <Legend />
-                <Area type="monotone" dataKey="sequestered" stackId="1" stroke="#059669" fill="#d1fae5" name="Verified" />
-                <Area type="monotone" dataKey="projected" stackId="1" stroke="#6366f1" fill="#e0e7ff" strokeDasharray="5 5" name="Projected" />
+                <Area type="monotone" dataKey="sequestered" stackId="1" stroke="#059669" fill="#d1fae5" name={t('carbonVerified')} />
+                <Area type="monotone" dataKey="projected" stackId="1" stroke="#6366f1" fill="#e0e7ff" strokeDasharray="5 5" name={t('carbonProjected')} />
               </AreaChart>
             </ResponsiveContainer>
           </CardContent>
@@ -273,33 +227,33 @@ export default function DashboardPage() {
         <CardHeader className="pb-2">
           <CardTitle className="text-base font-semibold flex items-center gap-2">
             <Mail className="w-5 h-5 text-amber-600" />
-            Weekly Ministry Report Summary
+            {t('ministryReportTitle')}
           </CardTitle>
         </CardHeader>
         <CardContent>
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
             <div className="bg-amber-50 rounded-lg p-3 border border-amber-200">
-              <p className="text-xs text-amber-700 font-medium">17-Column Report Entries</p>
+              <p className="text-xs text-amber-700 font-medium">{t('report17ColEntries')}</p>
               <p className="text-2xl font-bold text-amber-800 mt-1">{entries.length}</p>
-              <p className="text-xs text-amber-600 mt-1">Weekly email to DAE &amp; MoA</p>
+              <p className="text-xs text-amber-600 mt-1">{lang === 'bn' ? 'DAE ও MoA তে সাপ্তাহিক ইমেইল' : 'Weekly email to DAE & MoA'}</p>
             </div>
             <div className="bg-green-50 rounded-lg p-3 border border-green-200">
-              <p className="text-xs text-green-700 font-medium">Total Saplings (Report)</p>
+              <p className="text-xs text-green-700 font-medium">{t('reportTotalSaplings')}</p>
               <p className="text-2xl font-bold text-green-800 mt-1">{totalSaplings.toLocaleString()}</p>
-              <p className="text-xs text-green-600 mt-1">Across {uniqueUpazilas} upazilas</p>
+              <p className="text-xs text-green-600 mt-1">{uniqueUpazilas} {t('upazilas')}</p>
             </div>
             <div className="bg-blue-50 rounded-lg p-3 border border-blue-200">
-              <p className="text-xs text-blue-700 font-medium">Reporting Emails</p>
+              <p className="text-xs text-blue-700 font-medium">{t('reportEmails')}</p>
               <p className="text-xs text-blue-800 font-mono mt-2 leading-relaxed">
                 admonitoring@dae.gov.bd<br/>
                 ddimplement@dae.gov.bd
               </p>
-              <p className="text-xs text-blue-600 mt-1">Weekly submission required</p>
+              <p className="text-xs text-blue-600 mt-1">{t('weeklySubmission')}</p>
             </div>
           </div>
           <div className="mt-3 bg-gray-50 rounded-lg p-3 text-xs text-muted-foreground">
-            <p className="font-medium text-gray-700 mb-1">Report Format:</p>
-            <p>সাপ্তাহিকভিত্তিক বৃক্ষরোপণের তথ্য (Weekly Plantation Report) - 17 columns including village, block, union, upazila, district, species, count, date, GPS coordinates, farmer &amp; SAAO details.</p>
+            <p className="font-medium text-gray-700 mb-1">{t('reportFormat')}</p>
+            <p>{t('reportFormatDesc')}</p>
           </div>
         </CardContent>
       </Card>
@@ -307,22 +261,22 @@ export default function DashboardPage() {
       {/* Recent Planting Entries */}
       <Card className="shadow-sm">
         <CardHeader className="pb-2">
-          <CardTitle className="text-base font-semibold">Recent Planting Entries</CardTitle>
+          <CardTitle className="text-base font-semibold">{t('recentEntries')}</CardTitle>
         </CardHeader>
         <CardContent>
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b text-left">
-                  <th className="pb-2 pr-4 font-medium text-muted-foreground">Species</th>
-                  <th className="pb-2 pr-4 font-medium text-muted-foreground">Qty</th>
-                  <th className="pb-2 pr-4 font-medium text-muted-foreground">Upazila</th>
-                  <th className="pb-2 pr-4 font-medium text-muted-foreground">Farmer</th>
-                  <th className="pb-2 font-medium text-muted-foreground">SAAO</th>
+                  <th className="pb-2 pr-4 font-medium text-muted-foreground">{t('thSpecies')}</th>
+                  <th className="pb-2 pr-4 font-medium text-muted-foreground">{t('thQty')}</th>
+                  <th className="pb-2 pr-4 font-medium text-muted-foreground">{t('thUpazila')}</th>
+                  <th className="pb-2 pr-4 font-medium text-muted-foreground">{t('thFarmer')}</th>
+                  <th className="pb-2 font-medium text-muted-foreground">{t('thSaao')}</th>
                 </tr>
               </thead>
               <tbody>
-                {entries.slice(-8).reverse().map((e) => (
+                {entries.slice(-8).reverse().map((e: any) => (
                   <tr key={e.id} className="border-b last:border-0">
                     <td className="py-2.5 pr-4 font-medium">{e.species}</td>
                     <td className="py-2.5 pr-4">{e.count}</td>

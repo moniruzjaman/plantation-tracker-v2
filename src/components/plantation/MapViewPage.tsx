@@ -2,6 +2,7 @@
 
 import { useState, useCallback, useEffect } from 'react'
 import { Satellite, Eye, Calendar, MapPin } from 'lucide-react'
+import { useLang } from '@/lib/i18n'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Card, CardContent } from '@/components/ui/card'
@@ -109,14 +110,14 @@ function LeafletMap({ entries, showSatellite, upazilaFilter }: {
                 </h3>
                 <table style={{ fontSize: 12, width: '100%' }}>
                   <tbody>
-                    <tr><td style={{ color: '#666', paddingRight: 8 }}>Quantity:</td><td style={{ fontWeight: 600 }}>{entry.count} saplings</td></tr>
-                    <tr><td style={{ color: '#666' }}>Upazila:</td><td style={{ fontWeight: 600 }}>{entry.upazila || '-'}</td></tr>
-                    <tr><td style={{ color: '#666' }}>District:</td><td>{entry.district || '-'}</td></tr>
-                    <tr><td style={{ color: '#666' }}>Date:</td><td>{entry.plantingDate || '-'}</td></tr>
-                    <tr><td style={{ color: '#666' }}>GPS:</td><td style={{ fontFamily: 'monospace', fontSize: 11 }}>{entry.latitude}, {entry.longitude}</td></tr>
-                    <tr><td style={{ color: '#666' }}>Farmer:</td><td>{entry.farmerName || '-'}</td></tr>
-                    <tr><td style={{ color: '#666' }}>SAAO:</td><td>{entry.saaoName || '-'}</td></tr>
-                    <tr><td style={{ color: '#666' }}>Source:</td><td>{entry.seedlingSource || '-'}</td></tr>
+                    <tr><td style={{ color: '#666', paddingRight: 8 }}>{t('popupQuantity')}</td><td style={{ fontWeight: 600 }}>{entry.count} {t('saplings')}</td></tr>
+                    <tr><td style={{ color: '#666' }}>{t('popupUpazila')}</td><td style={{ fontWeight: 600 }}>{entry.upazila || '-'}</td></tr>
+                    <tr><td style={{ color: '#666' }}>{t('popupDistrict')}</td><td>{entry.district || '-'}</td></tr>
+                    <tr><td style={{ color: '#666' }}>{t('popupDate')}</td><td>{entry.plantingDate || '-'}</td></tr>
+                    <tr><td style={{ color: '#666' }}>{t('popupGps')}</td><td style={{ fontFamily: 'monospace', fontSize: 11 }}>{entry.latitude}, {entry.longitude}</td></tr>
+                    <tr><td style={{ color: '#666' }}>{t('popupFarmer')}</td><td>{entry.farmerName || '-'}</td></tr>
+                    <tr><td style={{ color: '#666' }}>{t('popupSaao')}</td><td>{entry.saaoName || '-'}</td></tr>
+                    <tr><td style={{ color: '#666' }}>{t('popupSource')}</td><td>{entry.seedlingSource || '-'}</td></tr>
                   </tbody>
                 </table>
               </div>
@@ -132,6 +133,7 @@ export default function MapViewPage() {
   const [entries, setEntries] = useState<MapEntry[]>([])
   const [selectedDate, setSelectedDate] = useState('2026-06-20')
   const [showSatellite, setShowSatellite] = useState(true)
+  const { t } = useLang()
   const [mounted, setMounted] = useState(false)
   const [upazilaFilter, setUpazilaFilter] = useState('all')
 
@@ -157,7 +159,7 @@ export default function MapViewPage() {
       <div className="h-[calc(100vh-140px)] flex items-center justify-center bg-gray-100 rounded-xl">
         <div className="flex flex-col items-center gap-3">
           <div className="w-8 h-8 border-4 border-green-500 border-t-transparent rounded-full animate-spin" />
-          <p className="text-muted-foreground text-sm">Loading satellite map...</p>
+          <p className="text-muted-foreground text-sm">{t('loadingMap')}</p>
         </div>
       </div>
     )
@@ -183,7 +185,7 @@ export default function MapViewPage() {
             className="border rounded-md px-3 py-2 text-sm bg-white"
           >
             {upazilas.map(u => (
-              <option key={u} value={u}>{u === 'all' ? 'All Upazilas' : u}</option>
+              <option key={u} value={u}>{u === 'all' ? t('allUpazilas') : u}</option>
             ))}
           </select>
           <Button
@@ -193,13 +195,13 @@ export default function MapViewPage() {
             className="gap-2"
           >
             <Satellite className="w-4 h-4" />
-            Satellite
+            {t('satellite')}
           </Button>
         </div>
 
         <div className="flex items-center gap-4 text-sm">
           <span className="text-muted-foreground">
-            {filteredCount} sites | {filteredSaplings.toLocaleString()} saplings
+            {filteredCount} {t('statSites')} | {filteredSaplings.toLocaleString()} {t('saplings')}
           </span>
         </div>
       </div>
@@ -213,7 +215,7 @@ export default function MapViewPage() {
           <CardContent className="p-3">
             <h4 className="text-xs font-bold mb-2 flex items-center gap-1">
               <MapPin className="w-3.5 h-3.5" />
-              Species Legend
+              {t('speciesLegend')}
             </h4>
             <div className="space-y-1">
               {speciesLegend.map((l) => (
@@ -231,17 +233,17 @@ export default function MapViewPage() {
           <CardContent className="p-4">
             <h4 className="text-sm font-bold mb-2 flex items-center gap-2">
               <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse" />
-              Kurigram District Map
+              {t('kurigramMap')}
             </h4>
             <p className="text-xs text-muted-foreground mb-2">
-              25 Crore Tree Plantation | {entries.length} GPS-verified sites
+              {t('croreProgram')} | {entries.length} {t('gpsTracked')}
             </p>
             <div className="bg-green-50 border border-green-200 rounded p-2">
               <p className="text-xs font-medium text-green-800">
-                {filteredSaplings.toLocaleString()} saplings across {filteredCount} sites
+                {filteredSaplings.toLocaleString()} {t('saplings')} {t('acrossUpazilas')} {filteredCount} {t('statSites')}
               </p>
               <p className="text-xs text-green-600 mt-1">
-                Circle size = quantity planted
+                {t('circleSize')}
               </p>
             </div>
           </CardContent>
