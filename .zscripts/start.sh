@@ -2,66 +2,71 @@
 
 set -e
 
-# 获取脚本所在目录
+# স্ক্রিপ্টটি যে ডিরেক্টরিতে আছে তা বের করা
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 BUILD_DIR="$SCRIPT_DIR"
 
-# 存储所有子进程的 PID
+# সকল সাব-প্রসেসের (Sub-process) PID সংরক্ষণের ভেরিয়াবল
 pids=""
 
-# 清理函数：优雅关闭所有服务
+# ক্লিনআপ ফাংশন: সফলভাবে সমস্ত সার্ভিস বন্ধ করা
 cleanup() {
-    echo ""
-    echo "🛑 正在关闭所有服务..."
+    # পুনঃবার ট্র্যাপ ট্রিগার হওয়া বন্ধ করা
+    trap - EXIT INT TERM
     
-    # 发送 SIGTERM 信号给所有子进程
+    echo ""
+    echo "🛑 সমস্ত সার্ভিস বন্ধ করা হচ্ছে..."
+    
+    # সকল সাব-প্রসেসে SIGTERM সিগন্যাল পাঠানো হচ্ছে
     for pid in $pids; do
         if kill -0 "$pid" 2>/dev/null; then
-            service_name=$(ps -p "$pid" -o comm= 2>/dev/null || echo "unknown")
-            echo "   关闭进程 $pid ($service_name)..."
+            service_name=$(ps -p "$pid" -o comm= 2>/dev/null || echo "অজানা")
+            echo "   প্রসেস বন্ধ করা হচ্ছে: $pid ($service_name)..."
             kill -TERM "$pid" 2>/dev/null
         fi
     done
     
-    # 等待所有进程退出（最多等待 5 秒）
+    # সমস্ত প্রসেস বন্ধ হওয়া পর্যন্ত অপেক্ষা (সর্বোচ্চ ৫ সেকেন্ড)
     sleep 1
     for pid in $pids; do
         if kill -0 "$pid" 2>/dev/null; then
-            # 如果还在运行，等待最多 4 秒
             timeout=4
             while [ $timeout -gt 0 ] && kill -0 "$pid" 2>/dev/null; do
                 sleep 1
                 timeout=$((timeout - 1))
             done
-            # 如果仍然在运行，强制关闭
             if kill -0 "$pid" 2>/dev/null; then
-                echo "   强制关闭进程 $pid..."
+                echo "   প্রসেস $pid জোরপূর্বক বন্ধ করা হচ্ছে..."
                 kill -KILL "$pid" 2>/dev/null
             fi
         fi
     done
     
-    echo "✅ 所有服务已关闭"
+    echo "✅ সমস্ত সার্ভিস সফলভাবে বন্ধ করা হয়েছে"
     exit 0
 }
 
-echo "🚀 开始启动所有服务..."
+# স্ক্রিপ্ট বন্ধ বা ইন্টারাপ্ট (Ctrl+C/SIGTERM) হলে ক্লিনআপ ফাংশন ট্রিগার করা
+trap cleanup EXIT INT TERM
+
+echo "🚀 সকল সার্ভিস চালু করা হচ্ছে..."
 echo ""
 
-# 切换到构建目录
+# বিল্ড ডিরেক্টরিতে নেভিগেট করা
 cd "$BUILD_DIR" || exit 1
 
 ls -lah
 
-DEFAULT_PACKAGED_DB_PATH="/app/db/custom.db"
+DEFAULT_PACKAGED_DB_PATH="./db/custom.db"
+[ -f "/app/db/custom.db" ] && DEFAULT_PACKAGED_DB_PATH="/app/db/custom.db"
 DEFAULT_PACKAGED_DATABASE_URL="file:$DEFAULT_PACKAGED_DB_PATH"
 
-# 启动 Next.js 服务器
+# Next.js সার্ভার চালু করা
 if [ -f "./next-service-dist/server.js" ]; then
-    echo "🚀 启动 Next.js 服务器..."
+    echo "🚀 Next.js সার্ভার চালু করা হচ্ছে..."
     cd next-service-dist/ || exit 1
     
-    # 设置环境变量
+    # এনভায়রনমেন্ট ভেরিয়েবল সেট করা
     export NODE_ENV=production
     export PORT="${PORT:-3000}"
     export HOSTNAME="${HOSTNAME:-0.0.0.0}"
@@ -69,67 +74,72 @@ if [ -f "./next-service-dist/server.js" ]; then
 
     if [ "$DATABASE_URL" = "$DEFAULT_PACKAGED_DATABASE_URL" ]; then
         if [ ! -f "$DEFAULT_PACKAGED_DB_PATH" ]; then
-            echo "❌ 未找到打包后的数据库文件 $DEFAULT_PACKAGED_DB_PATH"
-            echo "   为避免生产环境启动到空数据库，启动已终止"
+            echo "❌ প্যাকেজ করা ডাটাবেস ফাইলটি পাওয়া যায়নি: $DEFAULT_PACKAGED_DB_PATH"
+            echo "   প্রডাকশন এনভায়রনমেন্ট খালি ডাটাবেসে শুরু হওয়া এড়াতে প্রসেস বাতিল করা হলো।"
             exit 1
         fi
 
-        echo "🗄️  当前使用打包数据库: $DEFAULT_PACKAGED_DB_PATH"
+        echo "🗄️  বর্তমানে প্যাকেজ করা ডাটাবেস ব্যবহৃত হচ্ছে: $DEFAULT_PACKAGED_DB_PATH"
     else
-        echo "🗄️  当前使用外部指定数据库: $DATABASE_URL"
+        echo "🗄️  বর্তমানে বাহ্যিক নির্দিষ্ট ডাটাবেস ব্যবহৃত হচ্ছে: $DATABASE_URL"
     fi
     
-    # 后台启动 Next.js
+    # ব্যাকগ্রাউন্ডে Next.js চালানো
     bun server.js &
     NEXT_PID=$!
     pids="$NEXT_PID"
     
-    # 等待一小段时间检查进程是否成功启动
+    # প্রসেসটি সফলভাবে চালু হয়েছে কিনা তা পরীক্ষা করা
     sleep 1
     if ! kill -0 "$NEXT_PID" 2>/dev/null; then
-        echo "❌ Next.js 服务器启动失败"
+        echo "❌ Next.js সার্ভার চালুকরণ ব্যর্থ হয়েছে"
         exit 1
     else
-        echo "✅ Next.js 服务器已启动 (PID: $NEXT_PID, Port: $PORT)"
+        echo "✅ Next.js সার্ভার চালু হয়েছে (PID: $NEXT_PID, Port: $PORT)"
     fi
     
     cd ../
 else
-    echo "⚠️  未找到 Next.js 服务器文件: ./next-service-dist/server.js"
+    echo "⚠️  Next.js সার্ভার ফাইলটি পাওয়া যায়নি: ./next-service-dist/server.js"
 fi
 
-# 启动 mini-services
+# mini-services চালু করা
 if [ -f "./mini-services-start.sh" ]; then
-    echo "🚀 启动 mini-services..."
+    echo "🚀 mini-services চালু করা হচ্ছে..."
     
-    # 运行启动脚本（从根目录运行，脚本内部会处理 mini-services-dist 目录）
+    # রুট ডিরেক্টরি থেকে স্টার্ট স্ক্রিপ্ট রান করা
     sh ./mini-services-start.sh &
     MINI_PID=$!
     pids="$pids $MINI_PID"
     
-    # 等待一小段时间检查进程是否成功启动
     sleep 1
     if ! kill -0 "$MINI_PID" 2>/dev/null; then
-        echo "⚠️  mini-services 可能启动失败，但继续运行..."
+        echo "⚠️  mini-services চালুকরণে সমস্যা হতে পারে, তবে মূল প্রসেস চলছে..."
     else
-        echo "✅ mini-services 已启动 (PID: $MINI_PID)"
+        echo "✅ mini-services চালু হয়েছে (PID: $MINI_PID)"
     fi
 elif [ -d "./mini-services-dist" ]; then
-    echo "⚠️  未找到 mini-services 启动脚本，但目录存在"
+    echo "⚠️  mini-services স্টার্ট স্ক্রিপ্ট পাওয়া যায়নি, তবে ডিরেক্টরিটি বিদ্যমান"
 else
-    echo "ℹ️  mini-services 目录不存在，跳过"
+    echo "ℹ️  mini-services ডিরেক্টরি পাওয়া যায়নি, স্কিপ করা হলো"
 fi
 
-# 启动 Caddy（如果存在 Caddyfile）
-echo "🚀 启动 Caddy..."
+# Caddy চালু করা (যদি Caddyfile থাকে)
+if [ -f "Caddyfile" ]; then
+    echo "🚀 Caddy চালু করা হচ্ছে..."
+    caddy run --config Caddyfile --adapter caddyfile &
+    CADDY_PID=$!
+    pids="$pids $CADDY_PID"
+    echo "✅ Caddy ব্যাকগ্রাউন্ডে চালু হয়েছে (PID: $CADDY_PID)"
+else
+    echo "ℹ️  কোনো Caddyfile পাওয়া যায়নি, Caddy স্কিপ করা হলো"
+fi
 
-# Caddy 作为前台进程运行（主进程）
-echo "✅ Caddy 已启动（前台运行）"
 echo ""
-echo "🎉 所有服务已启动！"
+echo "🎉 সকল সার্ভিস সফলভাবে চালু হয়েছে!"
 echo ""
-echo "💡 按 Ctrl+C 停止所有服务"
+echo "💡 সমস্ত সার্ভিস বন্ধ করতে Ctrl+C চাপুন"
 echo ""
 
-# Caddy 作为主进程运行
-exec caddy run --config Caddyfile --adapter caddyfile
+# সকল ব্যাকগ্রাউন্ড প্রসেস চালু থাকা পর্যন্ত স্ক্রিপ্টটি সক্রিয় রাখা
+wait
