@@ -30,12 +30,12 @@ const getSpeciesColor = (species: string) => {
   return '#0891b2'
 }
 
-const getSpeciesLegend = (t: (key: string) => string) => [
-  { label: `${t('legendGuava')} (পেয়ারা)`, color: '#059669' },
-  { label: `${t('legendMalta')} (মাল্টা)`, color: '#7c3aed' },
-  { label: `${t('legendLemon')} (লেবু)`, color: '#ea580c' },
-  { label: `${t('legendMango')} (আম)`, color: '#eab308' },
-  { label: `${t('legendOther')}`, color: '#0891b2' },
+const getSpeciesLegend = (t: (key: string) => string, lang: Lang) => [
+  { label: lang === 'en' ? `${t('legendGuava')} (পেয়ারা)` : t('legendGuava'), color: '#059669' },
+  { label: lang === 'en' ? `${t('legendMalta')} (মাল্টা)` : t('legendMalta'), color: '#7c3aed' },
+  { label: lang === 'en' ? `${t('legendLemon')} (লেবু)` : t('legendLemon'), color: '#ea580c' },
+  { label: lang === 'en' ? `${t('legendMango')} (আম)` : t('legendMango'), color: '#eab308' },
+  { label: t('legendOther'), color: '#0891b2' },
 ]
 
 function LeafletMap({ entries, showSatellite, upazilaFilter, t, lang }: {
@@ -135,7 +135,7 @@ export default function MapViewPage() {
     ? entries.reduce((s, e) => s + e.count, 0)
     : entries.filter(e => e.upazila === upazilaFilter).reduce((s, e) => s + e.count, 0)
 
-  const speciesLegend = getSpeciesLegend(t)
+  const speciesLegend = getSpeciesLegend(t, lang)
 
   if (!mounted) {
     return (

@@ -174,13 +174,16 @@ export default function DashboardPage() {
                 {t('chartNdviTrend')}
               </CardTitle>
               <div className="flex gap-1">
-                {['1m', '3m', '6m', '1y'].map((r) => (
-                  <button key={r} onClick={() => setTimeRange(r)}
-                    className={`px-2.5 py-1 text-xs rounded-md transition-colors ${
-                      timeRange === r ? 'bg-green-100 text-green-700 font-medium' : 'text-muted-foreground hover:bg-muted'
-                    }`}
-                  >{r}</button>
-                ))}
+                {(['1m', '3m', '6m', '1y'] as const).map((r) => {
+                  const labelMap: Record<string, string> = { '1m': t('range1m'), '3m': t('range3m'), '6m': t('range6m'), '1y': t('range1y') }
+                  return (
+                    <button key={r} onClick={() => setTimeRange(r)}
+                      className={`px-2.5 py-1 text-xs rounded-md transition-colors ${
+                        timeRange === r ? 'bg-green-100 text-green-700 font-medium' : 'text-muted-foreground hover:bg-muted'
+                      }`}
+                    >{labelMap[r]}</button>
+                  )
+                })}
               </div>
             </div>
           </CardHeader>

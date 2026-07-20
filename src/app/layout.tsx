@@ -1,8 +1,15 @@
 import type { Metadata } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
+import { Geist, Geist_Mono, Noto_Sans_Bengali } from "next/font/google";
 import "./globals.css";
 import { Toaster } from "@/components/ui/toaster";
 import { LangProvider } from "@/lib/i18n";
+
+const notoBengali = Noto_Sans_Bengali({
+  variable: "--font-noto-bengali",
+  subsets: ["bengali"],
+  weight: ["400", "500", "600", "700"],
+  display: "swap",
+});
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -30,9 +37,12 @@ export default function RootLayout({
   return (
     <html lang="bn" suppressHydrationWarning>
       <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased bg-background text-foreground`}
+        className={`${notoBengali.variable} ${geistSans.variable} ${geistMono.variable} antialiased bg-background text-foreground`}
       >
-        <LangProvider>{children}<Toaster /></LangProvider>
+        <LangProvider>
+          {children}
+          <Toaster />
+        </LangProvider>
       </body>
     </html>
   );

@@ -136,7 +136,7 @@ export default function Home() {
             <div className="flex items-center justify-between">
               <p className="text-[11px] text-green-300 font-medium">{t('districtLabel')}</p>
               {dbSeeded && (
-                <span className="text-[10px] bg-green-700 text-green-200 px-1.5 py-0.5 rounded">LIVE</span>
+                <span className="text-[10px] bg-green-700 text-green-200 px-1.5 py-0.5 rounded">{t('live')}</span>
               )}
             </div>
             <p className="text-xl font-bold text-white mt-1">{sidebarStats.saplings.toLocaleString()} {t('saplings')}</p>

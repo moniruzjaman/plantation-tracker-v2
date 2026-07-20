@@ -273,6 +273,21 @@ const t: Translations = {
   trees: { bn: 'টি বৃক্ষ', en: 'trees' },
   synced: { bn: 'সিঙ্ক হয়েছে', en: 'Synced' },
   pending: { bn: 'বাকি আছে', en: 'Pending' },
+
+  // Time range filters
+  range1m: { bn: '১ম', en: '1M' },
+  range3m: { bn: '৩ম', en: '3M' },
+  range6m: { bn: '৬ম', en: '6M' },
+  range1y: { bn: '১বছর', en: '1Y' },
+
+  // Live badge
+  live: { bn: 'সরাসরি', en: 'LIVE' },
+
+  // Species legend (English names to show alongside Bangla in English mode)
+  legendGuavaEn: { bn: '', en: 'Guava' },
+  legendMaltaEn: { bn: '', en: 'Malta' },
+  legendLemonEn: { bn: '', en: 'Lemon' },
+  legendMangoEn: { bn: '', en: 'Mango' },
 }
 
 interface LangContextType {
