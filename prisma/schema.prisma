@@ -53,17 +53,18 @@ model CarbonData {
 }
 
 model FieldData {
-  id          String     @id @default(cuid())
-  plantationId String
-  plantation  Plantation @relation(fields: [plantationId], references: [id], onDelete: Cascade)
-  species     String
-  dbh         Float      @default(0)
-  height      Float      @default(0)
-  gpsLat      Float
-  gpsLon      Float
+  id          String      @id @default(cuid())
+  plantationId String?
+  plantation  Plantation? @relation(fields: [plantationId], references: [id], onDelete: SetNull)
+  siteName    String?
+  species     String?
+  dbh         Float       @default(0)
+  height      Float       @default(0)
+  gpsLat      Float       @default(0)
+  gpsLon      Float       @default(0)
   notes       String?
-  status      String     @default("pending")
-  collectedAt DateTime   @default(now())
+  status      String      @default("pending")
+  collectedAt DateTime    @default(now())
 }
 
 model AppEntry {

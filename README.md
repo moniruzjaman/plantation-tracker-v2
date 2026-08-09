@@ -69,7 +69,7 @@ The application uses 5 Prisma models:
 - **Plantation** — Legacy plantation site records with NDVI health scores
 - **Alert** — Mortality alerts with NDVI drop detection, priority, and resolution tracking
 - **CarbonData** — Annual carbon sequestration data (verified/projected tCO2e, AGB/BGB biomass)
-- **FieldData** — Field measurement records (DBH, height, GPS)
+- **FieldData** — Field measurement records (DBH, height, GPS). `plantationId` is optional so measurements can be collected standalone.
 
 ## Current Data
 
@@ -89,15 +89,20 @@ Imported from the official Tree Plantation Workbook (Excel):
 
 | Method | Endpoint | Description |
 |--------|----------|-------------|
-| POST | `/api/seed` | Seed database with Excel data (idempotent) |
+| POST | `/api/seed` | Seed database with Excel data (idempotent, non-destructive) |
 | GET | `/api/app-entries` | List all plantation entries |
-| POST | `/api/app-entries` | Create new entry |
+| POST | `/api/app-entries` | Create new entry (requires API key) |
 | GET | `/api/plantations` | List plantation sites |
-| POST | `/api/plantations` | Create plantation |
+| POST | `/api/plantations` | Create plantation (requires API key) |
 | GET | `/api/alerts` | List mortality alerts |
-| POST | `/api/alerts` | Create alert |
+| POST | `/api/alerts` | Create alert (requires API key) |
+| PATCH | `/api/alerts/:id` | Mark alert as resolved (requires API key) |
 | GET | `/api/carbon` | Carbon data with district aggregation |
+| GET | `/api/field-data` | List field measurement records |
+| POST | `/api/field-data` | Create field measurement (requires API key) |
 | GET | `/api/ministry-report` | 17-col report + ministry report data + summary stats |
+
+> **Write protection**: When `API_SECRET` is set, all `POST`/`PATCH` endpoints return `401` unless the request includes an `X-API-Key` header matching it. `GET` endpoints and the idempotent `/api/seed` bootstrap remain open. The Field Collector and alert-resolution UI send the key automatically when `NEXT_PUBLIC_API_SECRET` is set to the same value.
 
 ## Getting Started
 
@@ -111,14 +116,17 @@ Imported from the official Tree Plantation Workbook (Excel):
 git clone https://github.com/moniruzjaman/plantation-tracker-v2.git
 cd plantation-tracker-v2
 npm install
+cp .env.example .env
 ```
 
 ### Setup Database
 
 ```bash
-npx prisma db push
 npx prisma generate
+npx prisma db push
 ```
+
+> **Note on the database path**: the app resolves a relative `file:` URL against the project root, so `DATABASE_URL="file:./db/custom.db"` points to `./db/custom.db`. The Prisma CLI resolves relative paths against `prisma/schema.prisma` instead — if you need CLI commands to target the same file, pass an absolute path: `DATABASE_URL="file:$(pwd)/db/custom.db" npx prisma db push`.
 
 ### Run Development Server
 
@@ -126,7 +134,7 @@ npx prisma generate
 npm run dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) in your browser. The database auto-seeds on first load.
+Open [http://localhost:3000](http://localhost:3000) in your browser. The database auto-seeds on first load (the seeder only populates empty tables and never deletes or overwrites existing data).
 
 ### Production Build
 
@@ -134,6 +142,22 @@ Open [http://localhost:3000](http://localhost:3000) in your browser. The databas
 npm run build
 npm start
 ```
+
+The build outputs a self-contained `standalone` bundle (`.next/standalone`) that only needs Node.js to run. The ministry-report Excel data is bundled at build time, so no extra files need to be copied to the deployment.
+
+### Securing Write Operations (Production)
+
+Set these environment variables to require an API key for all mutating endpoints:
+
+```bash
+# Server-side guard — POST/PATCH endpoints return 401 without this header
+API_SECRET="a-long-random-string"
+
+# Client-side key used by the Field Collector and alert-resolution UI
+NEXT_PUBLIC_API_SECRET="a-long-random-string"  # same value as API_SECRET
+```
+
+Without them the app runs in open (development) mode.
 
 ## Ministry Reporting
 
@@ -164,12 +188,14 @@ This project is developed for the Department of Agricultural Extension, Ministry
 src/
 ├── app/
 │   ├── api/
-│   │   ├── app-entries/route.ts    # CRUD for plantation entries
-│   │   ├── plantations/route.ts    # Plantation sites API
-│   │   ├── alerts/route.ts         # Mortality alerts API
+│   │   ├── app-entries/route.ts    # CRUD for plantation entries (validated)
+│   │   ├── plantations/route.ts    # Plantation sites API (validated)
+│   │   ├── alerts/route.ts         # Mortality alerts API (validated)
+│   │   ├── alerts/[id]/route.ts    # Resolve-alert workflow
 │   │   ├── carbon/route.ts         # Carbon data API
+│   │   ├── field-data/route.ts     # Field measurement API (validated)
 │   │   ├── ministry-report/route.ts # 17-col & ministry report API
-│   │   └── seed/route.ts           # Database seeder (Excel data)
+│   │   └── seed/route.ts           # Non-destructive database seeder
 │   ├── layout.tsx
 │   ├── page.tsx                    # Main app shell with sidebar
 │   └── globals.css
@@ -177,14 +203,18 @@ src/
 │   ├── plantation/
 │   │   ├── DashboardPage.tsx       # Dashboard with charts & ministry summary
 │   │   ├── MapViewPage.tsx         # Leaflet satellite map with markers
-│   │   ├── MortalityAlertsPage.tsx # NDVI alert management
+│   │   ├── MortalityAlertsPage.tsx # NDVI alert management (live API + resolve)
 │   │   ├── CarbonReportPage.tsx    # IPCC/Verra/Ministry report tabs
-│   │   └── FieldCollectorPage.tsx  # Field data collection form
+│   │   └── FieldCollectorPage.tsx  # Field data collection (live API + GPS)
 │   └── ui/                         # shadcn/ui components
 ├── data/
-│   └── excel_report_data.json      # 17-col & ministry report data
+│   └── excel_report_data.json      # 17-col & ministry report data (bundled at build)
 ├── lib/
-│   └── db.ts                       # Prisma client singleton
+│   ├── api.ts                      # API-key guard + error/validation helpers
+│   ├── api-client.ts               # Client-side API-key header helper
+│   ├── validation.ts               # zod schemas for all write endpoints
+│   ├── db.ts                       # Prisma client singleton (cwd-safe DB path)
+│   └── i18n.tsx                    # Bangla/English translations
 prisma/
 └── schema.prisma                   # SQLite database schema
 ```

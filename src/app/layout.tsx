@@ -25,7 +25,7 @@ export const metadata: Metadata = {
   title: "Plantation Tracker v2 - Satellite + Carbon Command Center",
   description: "Satellite-powered plantation monitoring with AI mortality detection and IPCC/Verra VM0047 carbon accounting.",
   icons: {
-    icon: "https://z-cdn.chatglm.cn/z-ai/static/logo.svg",
+    icon: "/logo.svg",
   },
 };
 
