@@ -1,30 +1,37 @@
 import { db } from '@/lib/db'
-import { NextResponse } from 'next/server'
+import { requireApiKey, apiError, parseBody, readJson } from '@/lib/api'
+import { plantationSchema } from '@/lib/validation'
 
 export async function GET() {
-  const plantations = await db.plantation.findMany({
-    orderBy: { createdAt: 'desc' },
-    include: {
-      _count: { select: { alerts: true, fieldData: true } },
-    },
-  })
-  return NextResponse.json(plantations)
+  try {
+    const plantations = await db.plantation.findMany({
+      orderBy: { createdAt: 'desc' },
+      include: {
+        _count: { select: { alerts: true, fieldData: true } },
+      },
+    })
+    return Response.json(plantations)
+  } catch (error) {
+    console.error('Failed to fetch plantations', error)
+    return apiError(500, 'Failed to fetch plantations')
+  }
 }
 
 export async function POST(request: Request) {
-  const body = await request.json()
-  const plantation = await db.plantation.create({
-    data: {
-      name: body.name,
-      district: body.district,
-      areaHa: body.areaHa,
-      trees: body.trees,
-      ndvi: body.ndvi ?? 0.0,
-      status: body.status ?? 'healthy',
-      latitude: body.latitude,
-      longitude: body.longitude,
-      species: body.species ?? 'Mixed',
-    },
-  })
-  return NextResponse.json(plantation, { status: 201 })
+  const unauthorized = requireApiKey(request)
+  if (unauthorized) return unauthorized
+
+  const raw = await readJson(request)
+  if (raw === null) return apiError(400, 'Invalid JSON body')
+
+  const { data, error } = parseBody(plantationSchema, raw)
+  if (error) return error
+
+  try {
+    const plantation = await db.plantation.create({ data })
+    return Response.json(plantation, { status: 201 })
+  } catch (error) {
+    console.error('Failed to create plantation', error)
+    return apiError(500, 'Failed to create plantation')
+  }
 }

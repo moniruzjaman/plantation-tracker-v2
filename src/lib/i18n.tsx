@@ -144,6 +144,11 @@ const t: Translations = {
   filterPriorityCritical: { bn: 'জরুরি', en: 'Critical' },
   filterPriorityHigh: { bn: 'উচ্চ', en: 'High' },
   filterPriorityMedium: { bn: 'মাঝারি', en: 'Medium' },
+  loadingAlerts: { bn: 'সতর্কতা লোড হচ্ছে...', en: 'Loading alerts...' },
+  markResolved: { bn: 'সমাধান করুন', en: 'Resolve' },
+  noAlerts: { bn: 'কোনো সতর্কতা নেই', en: 'No alerts found' },
+  loadFailed: { bn: 'তথ্য লোড করা যায়নি। আবার চেষ্টা করুন।', en: 'Failed to load data. Please try again.' },
+  resolveFailed: { bn: 'সতর্কতা সমাধান করা যায়নি। আবার চেষ্টা করুন।', en: 'Failed to resolve alert. Please try again.' },
 
   // --- Report Page ---
   carbonMinistry: { bn: 'কার্বন ও মন্ত্রণালয় রিপোর্ট', en: 'Carbon & Ministry Report' },
@@ -179,6 +184,8 @@ const t: Translations = {
   colSaao: { bn: 'SAAO', en: 'SAAO' },
   colSaaoMobile: { bn: 'SAAO মোবাইল', en: 'SAAO Mobile' },
   colMo: { bn: 'মনিটরিং অফিসার', en: 'Monitoring Officer' },
+  colFarmerMobile: { bn: 'পরিচর্যাকারীর মোবাইল', en: 'Caregiver Mobile' },
+  colMoMobile: { bn: 'মনিটরিং অফিসারের মোবাইল', en: 'MO Mobile' },
   colComments: { bn: 'মন্তব্য', en: 'Comments' },
   colLocation: { bn: 'জেলা, উপজেলা, ইউনিয়ন ও গ্রামের নাম', en: 'District, Upazila, Union & Village' },
   colFarmerInfo: { bn: 'কৃষকের নাম ও ফোন নম্বর', en: 'Farmer Name & Phone' },
@@ -273,6 +280,15 @@ const t: Translations = {
   trees: { bn: 'টি বৃক্ষ', en: 'trees' },
   synced: { bn: 'সিঙ্ক হয়েছে', en: 'Synced' },
   pending: { bn: 'বাকি আছে', en: 'Pending' },
+  loadingCollections: { bn: 'তথ্য লোড হচ্ছে...', en: 'Loading collections...' },
+  noCollections: { bn: 'কোনো সংগ্রহ নেই', en: 'No collections yet' },
+  gpsUnsupported: { bn: 'এই ব্রাউজারে জিপিএস সমর্থিত নয়।', en: 'GPS is not supported by this browser.' },
+  gpsDenied: { bn: 'জিপিএস অনুমতি দেওয়া হয়নি। ম্যানুয়ালি লিখুন।', en: 'GPS permission denied. Enter coordinates manually.' },
+  gpsRequired: { bn: 'অক্ষাংশ ও দ্রাঘিমাংশ প্রয়োজন।', en: 'Latitude and longitude are required.' },
+  speciesRequired: { bn: 'প্রজাতি প্রয়োজন।', en: 'Species is required.' },
+  invalidDbh: { bn: 'DBH মান সঠিক নয়।', en: 'Invalid DBH value.' },
+  invalidHeight: { bn: 'উচ্চতা মান সঠিক নয়।', en: 'Invalid height value.' },
+  saveFailed: { bn: 'সংরক্ষণ করা যায়নি। আবার চেষ্টা করুন।', en: 'Failed to save. Please try again.' },
 
   // Time range filters
   range1m: { bn: '১ম', en: '1M' },

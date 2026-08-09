@@ -95,8 +95,8 @@ export default function CarbonReportPage() {
     const headers = [
       t('colSl'), t('colVillage'), t('colBlock'), t('colUnion'), t('colUpazila'),
       t('colDistrict'), t('colSpecies'), t('colCount'), t('colDate'), t('colCoords'),
-      t('colFarmer'), t('colMobile'), t('colSaao'), t('colSaaoMobile'),
-      t('colMo'), t('colMobile'), t('colComments')
+      t('colFarmer'), t('colFarmerMobile'), t('colSaao'), t('colSaaoMobile'),
+      t('colMo'), t('colMoMobile'), t('colComments')
     ]
     const rows = report.report.map(r => [r.sl, r.village, r.block, r.union, r.upazila, r.district, r.species, r.count, r.plantingDate, r.coordinates, r.farmerName, r.farmerMobile, r.saaoName, r.saaoMobile, r.moName, r.moMobile, r.comments])
     const csv = [headers, ...rows].map(r => r.map(c => `"${c}"`).join(',')).join('\n')
