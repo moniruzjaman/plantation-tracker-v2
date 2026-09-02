@@ -7,24 +7,188 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+// 1. App Submissions Data (Live Mobile App Submissions)
+model AppEntry {
+  id              String      @id @default(cuid())
+  appSubmissionId String?     @unique
+  submissionTime  String?
+  division        String?
+  region          String?
+  district        String?
+  upazila         String?
+  unionName       String?     @map("union")
+  village         String?
+  locationType    String?
+  seedlingSource  String?
+  address         String?
+  latitude        Float       @default(0)
+  longitude       Float       @default(0)
+  plantingDate    String?
+  species         String?
+  treeClass       String?
+  count           Int         @default(0)
+  ndvi            Float       @default(0)
+  farmerName      String?
+  farmerMobile    String?
+  saaoName        String?
+  saaoMobile      String?
+  moName          String?
+  moMobile        String?
+  comments        String?
+  block           String?
+  createdAt       DateTime    @default(now())
+  updatedAt       DateTime    @updatedAt
+  growthLogs      GrowthLog[]
+
+  @@index([district, upazila])
+  @@index([species])
+  @@index([plantingDate])
+}
+
+// 2. User / Official Profiles (Officers, SAAO, ADD, DD)
+model UserProfile {
+  id              String   @id @default(cuid())
+  appSubmissionId String?  @unique
+  shortDesignation String? // e.g. ADD, DD, SAAO
+  designation     String?  // e.g. অতিরিক্ত উপপরিচালক
+  name            String
+  mobile          String?
+  email           String?
+  deviceId        String?
+  district        String?
+  upazila         String?
+  unionName       String?  @map("union")
+  block           String?
+  submissionTime  String?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@index([district, upazila])
+  @@index([designation])
+}
+
+// 3. Custom Upazilas Master Directory
+model CustomUpazila {
+  id         String   @id @default(cuid())
+  district   String
+  upazilaName String
+  addedBy    String?
+  deviceId   String?
+  createdAt  DateTime @default(now())
+
+  @@unique([district, upazilaName])
+  @@index([district])
+}
+
+// 4. Growth & NDVI Monitoring Logs
+model GrowthLog {
+  id              String    @id @default(cuid())
+  entryId         String?
+  appEntry        AppEntry? @relation(fields: [entryId], references: [appSubmissionId], onDelete: SetNull)
+  observationDate String?
+  ndvi            Float?
+  heightCm        Float?
+  condition       String?   // e.g. healthy, stressed, good
+  comments        String?
+  recordedBy      String?
+  deviceId        String?
+  submissionTime  String?
+  createdAt       DateTime  @default(now())
+
+  @@index([entryId])
+}
+
+// 5. Processed / Verified Field Submissions
+model ProcessData {
+  id            String   @id @default(cuid())
+  serialNo      String?
+  region        String?
+  district      String?
+  upazila       String?
+  species       String?
+  count         Int      @default(0)
+  plantingDate  String?
+  latitude      Float    @default(0)
+  longitude     Float    @default(0)
+  farmerName    String?
+  farmerMobile  String?
+  saaoName      String?
+  saaoMobile    String?
+  moName        String?
+  moMobile      String?
+  comments      String?
+  createdAt     DateTime @default(now())
+
+  @@index([district, upazila])
+}
+
+// 6. GPS Verified Site Coordinates Reference
+model GPSCoordinate {
+  id            String   @id @default(cuid())
+  siteName      String?
+  district      String?
+  upazila       String?
+  latitude      Float    @default(0)
+  longitude     Float    @default(0)
+  dmsLat        String?
+  dmsLon        String?
+  species       String?
+  saplingCount  Int      @default(0)
+  googleMapsUrl String?
+  createdAt     DateTime @default(now())
+
+  @@index([district, upazila])
+}
+
+// 7. Ministry & 17-Column Weekly Report Records
+model MinistryReport {
+  id            String   @id @default(cuid())
+  serialNo      Int?
+  village       String?
+  block         String?
+  unionName     String?  @map("union")
+  upazila       String?
+  district      String?
+  species       String?
+  count         Int      @default(0)
+  plantingDate  String?
+  latitude      Float?
+  longitude     Float?
+  farmerName    String?
+  farmerMobile  String?
+  saaoName      String?
+  saaoMobile    String?
+  moName        String?
+  moMobile      String?
+  comments      String?
+  reportWeek    String?
+  createdAt     DateTime @default(now())
+
+  @@index([district, upazila])
+}
+
+// 8. Core Plantation Sites
 model Plantation {
-  id          String   @id @default(cuid())
+  id          String       @id @default(cuid())
   name        String
   district    String
   areaHa      Float
   trees       Int
-  ndvi        Float    @default(0.0)
-  status      String   @default("healthy")
+  ndvi        Float        @default(0.0)
+  status      String       @default("healthy")
   latitude    Float
   longitude   Float
-  species     String   @default("Mixed")
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  species     String       @default("Mixed")
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
   alerts      Alert[]
   carbonData  CarbonData[]
   fieldData   FieldData[]
+
+  @@index([district])
 }
 
+// 9. Mortality & Stress Alerts
 model Alert {
   id            String     @id @default(cuid())
   plantationId  String
@@ -38,61 +202,39 @@ model Alert {
   estimatedLoss Float      @default(0)
   detectedAt    DateTime   @default(now())
   resolvedAt    DateTime?
+
+  @@index([plantationId])
+  @@index([status])
 }
 
+// 10. Carbon Sequestration Projections (IPCC / Verra)
 model CarbonData {
-  id            String     @id @default(cuid())
-  plantationId  String
-  plantation    Plantation @relation(fields: [plantationId], references: [id], onDelete: Cascade)
-  year          Int
-  verifiedTco2e Float      @default(0)
-  projectedTco2e Float     @default(0)
-  agbTc         Float      @default(0)
-  bgbTc         Float      @default(0)
-  totalBiomass  Float      @default(0)
+  id             String     @id @default(cuid())
+  plantationId   String
+  plantation     Plantation @relation(fields: [plantationId], references: [id], onDelete: Cascade)
+  year           Int
+  verifiedTco2e  Float      @default(0)
+  projectedTco2e Float      @default(0)
+  agbTc          Float      @default(0)
+  bgbTc          Float      @default(0)
+  totalBiomass   Float      @default(0)
+
+  @@index([plantationId, year])
 }
 
+// 11. Mobile Field Measurements
 model FieldData {
-  id          String     @id @default(cuid())
+  id           String     @id @default(cuid())
   plantationId String
-  plantation  Plantation @relation(fields: [plantationId], references: [id], onDelete: Cascade)
-  species     String
-  dbh         Float      @default(0)
-  height      Float      @default(0)
-  gpsLat      Float
-  gpsLon      Float
-  notes       String?
-  status      String     @default("pending")
-  collectedAt DateTime   @default(now())
-}
+  plantation   Plantation @relation(fields: [plantationId], references: [id], onDelete: Cascade)
+  species      String
+  dbh          Float      @default(0)
+  height       Float      @default(0)
+  gpsLat       Float
+  gpsLon       Float
+  notes        String?
+  status       String     @default("pending")
+  collectedAt  DateTime   @default(now())
 
-model AppEntry {
-  id              String   @id @default(cuid())
-  appSubmissionId String?
-  division        String?
-  region          String?
-  district        String?
-  upazila         String?
-  unionName       String?  @map("union")
-  village         String?
-  locationType    String?
-  seedlingSource  String?
-  address         String?
-  latitude        Float    @default(0)
-  longitude       Float    @default(0)
-  plantingDate    String?
-  species         String?
-  treeClass       String?
-  count           Int      @default(0)
-  ndvi            Float    @default(0)
-  farmerName      String?
-  farmerMobile    String?
-  saaoName        String?
-  saaoMobile      String?
-  moName          String?
-  moMobile        String?
-  comments        String?
-  block           String?
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
+  @@index([plantationId])
 }

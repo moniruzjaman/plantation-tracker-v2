@@ -18,6 +18,7 @@ const t: Translations = {
   navAlerts: { bn: 'মৃত্যু সতর্কতা', en: 'Mortality Alerts' },
   navReport: { bn: 'রিপোর্ট', en: 'Report' },
   navField: { bn: 'ফিল্ড কালেক্টর', en: 'Field Collector' },
+  navSchema: { bn: 'স্কিমা এক্সপ্লোরার', en: 'Schema Explorer' },
 
   // --- Sidebar Stats ---
   districtLabel: { bn: 'কুড়িগ্রাম জেলা', en: 'Kurigram District' },

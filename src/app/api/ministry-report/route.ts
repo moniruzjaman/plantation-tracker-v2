@@ -59,8 +59,8 @@ export async function GET() {
 
   return NextResponse.json({
     report,
-    report17Col: excelData.report17,
-    ministryReport: excelData.ministry,
+    report17Col: excelData?.report17 || [],
+    ministryReport: excelData?.ministry || [],
     summary: {
       totalEntries: entries.length,
       totalSaplings,
@@ -68,8 +68,8 @@ export async function GET() {
       uniqueUpazilas: Object.keys(upazilaBreakdown).length,
       speciesBreakdown,
       upazilaBreakdown,
-      report17ColCount: excelData.report17.length,
-      ministryReportCount: excelData.ministry.length,
+      report17ColCount: excelData?.report17?.length || 0,
+      ministryReportCount: excelData?.ministry?.length || 0,
     },
   })
 }

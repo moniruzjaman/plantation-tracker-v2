@@ -11,6 +11,7 @@ The system ingests field data collected via a mobile app, displays GPS-verified 
 ## Key Features
 
 ### Dashboard
+
 - Real-time statistics: total saplings, species diversity, upazila coverage, farmer engagement
 - Species distribution pie chart with 26+ fruit tree species
 - District-level sapling breakdown bar chart
@@ -20,6 +21,7 @@ The system ingests field data collected via a mobile app, displays GPS-verified 
 - Recent planting entries table with farmer and SAAO details
 
 ### Satellite Map
+
 - Interactive Leaflet map with satellite imagery (Esri World Imagery) and OpenStreetMap base layers
 - GPS-verified CircleMarkers at each planting site, color-coded by species (Guava, Malta, Lemon, Mango, etc.)
 - Marker size proportional to sapling count
@@ -29,6 +31,7 @@ The system ingests field data collected via a mobile app, displays GPS-verified 
 - Supports 52+ GPS-tracked planting sites
 
 ### Mortality Alerts
+
 - NDVI-based mortality detection with priority levels (critical, high, medium)
 - Status tracking: open, investigating, resolved
 - Filterable by priority and status
@@ -36,6 +39,7 @@ The system ingests field data collected via a mobile app, displays GPS-verified 
 - One-click resolution workflow
 
 ### Report (Carbon & Ministry)
+
 - **Ministry Report Tab**: Full 17-column table matching the government reporting format (রোপণকৃত চারার তথ্য) with CSV export
 - **IPCC Tier 2 Tab**: District-level carbon sequestration bar chart, above-ground/below-ground biomass line chart
 - **Verra VM0047 Tab**: Carbon credit project compliance checklist (PDD, baseline, monitoring plan, leakage, buffer, VVB)
@@ -43,6 +47,7 @@ The system ingests field data collected via a mobile app, displays GPS-verified 
 - Upazila-level species breakdown chart
 
 ### Field Collector
+
 - Mobile-optimized field measurement form
 - GPS auto-fill for latitude/longitude
 - Species, DBH, height data entry
@@ -52,7 +57,7 @@ The system ingests field data collected via a mobile app, displays GPS-verified 
 ## Tech Stack
 
 | Layer | Technology |
-|-------|-----------|
+| --- | --- |
 | Framework | Next.js 16 (App Router, Turbopack) |
 | Language | TypeScript |
 | Styling | Tailwind CSS 4 + shadcn/ui |
@@ -75,20 +80,32 @@ The application uses 5 Prisma models:
 
 Imported from the official Tree Plantation Workbook (Excel):
 
-| Metric | Value |
-|--------|-------|
-| App Entries | 52 GPS-verified records |
-| Total Saplings | 3,860 |
-| Species | 26 (Guava, Malta, Lemon, Mango, Jackfruit, etc.) |
-| Upazilas | 13 across Kurigram District |
-| Districts | Kurigram, Khulna, Lalmonirhat, Khagrachhari, Gaibandha |
-| 17-Column Report Rows | 30 |
-| Ministry Report Rows | 234 |
+### Plantation Coverage
+
+| Metric | Count | Details |
+| --- | ---: | --- |
+| GPS-Verified Records | 52 | Mobile app submissions |
+| Total Saplings | 3,860 | Across all planting sites |
+| Upazilas | 13 | Kurigram District focus |
+| Districts | 5 | Kurigram, Khulna, Lalmonirhat, Khagrachhari, Gaibandha |
+
+### Species Diversity
+
+| Category | Count | Examples |
+| --- | ---: | --- |
+| Fruit Tree Species | 26 | Guava, Malta, Lemon, Mango, Jackfruit, and 21 others |
+
+### Report Generation
+
+| Report Type | Rows | Description |
+| --- | ---: | --- |
+| 17-Column Ministry Format | 30 | রোপণকৃত চারার তথ্য weekly submission |
+| Ministry Report | 234 | Aggregated submission-ready rows |
 
 ## API Endpoints
 
 | Method | Endpoint | Description |
-|--------|----------|-------------|
+| --- | --- | --- |
 | POST | `/api/seed` | Seed database with Excel data (idempotent) |
 | GET | `/api/app-entries` | List all plantation entries |
 | POST | `/api/app-entries` | Create new entry |
@@ -102,6 +119,7 @@ Imported from the official Tree Plantation Workbook (Excel):
 ## Getting Started
 
 ### Prerequisites
+
 - Node.js 18+
 - npm, yarn, or bun
 
@@ -139,8 +157,8 @@ npm start
 
 This application generates reports in the official format required by:
 
-- **Department of Agricultural Extension (DAE)**: admonitoring@dae.gov.bd / ddimplement@dae.gov.bd
-- **Ministry of Agriculture (MoA)**: E-mail-input2@moa.gov.bd / moa.input2@gmail.com
+- **Department of Agricultural Extension (DAE)**: <admonitoring@dae.gov.bd> / <ddimplement@dae.gov.bd>
+- **Ministry of Agriculture (MoA)**: <E-mail-input2@moa.gov.bd> / <moa.input2@gmail.com>
 
 Reports follow the 17-column format:
 > সাপ্তাহিকভিত্তিক বৃক্ষরোপণের তথ্য (Weekly Plantation Report)
