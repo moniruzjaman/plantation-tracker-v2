@@ -1,56 +1,59 @@
 #!/bin/sh
 
-# 配置项
+# কনফিগারেশন
 DIST_DIR="./mini-services-dist"
 
-# 存储所有子进程的 PID
+# সকল সাব-প্রসেসের (Sub-process) PID সংরক্ষণের ভেরিয়াবল
 pids=""
 
-# 清理函数：优雅关闭所有服务
+# ক্লিনআপ ফাংশন: সফলভাবে সমস্ত সার্ভিস বন্ধ করা
 cleanup() {
     echo ""
-    echo "🛑 正在关闭所有服务..."
+    echo "🛑 সমস্ত সার্ভিস বন্ধ করা হচ্ছে..."
     
-    # 发送 SIGTERM 信号给所有子进程
+    # সকল সাব-প্রসেসে SIGTERM সিগন্যাল পাঠানো হচ্ছে
     for pid in $pids; do
         if kill -0 "$pid" 2>/dev/null; then
-            service_name=$(ps -p "$pid" -o comm= 2>/dev/null || echo "unknown")
-            echo "   关闭进程 $pid ($service_name)..."
+            service_name=$(ps -p "$pid" -o comm= 2>/dev/null || echo "অজানা")
+            echo "   প্রসেস বন্ধ করা হচ্ছে: $pid ($service_name)..."
             kill -TERM "$pid" 2>/dev/null
         fi
     done
     
-    # 等待所有进程退出（最多等待 5 秒）
+    # সমস্ত প্রসেস বন্ধ হওয়া পর্যন্ত অপেক্ষা (সর্বোচ্চ ৫ সেকেন্ড)
     sleep 1
     for pid in $pids; do
         if kill -0 "$pid" 2>/dev/null; then
-            # 如果还在运行，等待最多 4 秒
+            # এখনও চললে সর্বোচ্চ ৪ সেকেন্ড অপেক্ষা করা হবে
             timeout=4
             while [ $timeout -gt 0 ] && kill -0 "$pid" 2>/dev/null; do
                 sleep 1
                 timeout=$((timeout - 1))
             done
-            # 如果仍然在运行，强制关闭
+            # এখনও চলতে থাকলে জোরপূর্বক বন্ধ (Force kill) করা হচ্ছে
             if kill -0 "$pid" 2>/dev/null; then
-                echo "   强制关闭进程 $pid..."
+                echo "   প্রসেস $pid জোরপূর্বক বন্ধ করা হচ্ছে..."
                 kill -KILL "$pid" 2>/dev/null
             fi
         fi
     done
     
-    echo "✅ 所有服务已关闭"
+    echo "✅ সমস্ত সার্ভিস সফলভাবে বন্ধ করা হয়েছে"
 }
 
+# স্ক্রিপ্ট বন্ধ বা ইন্টারাপ্ট (Ctrl+C) হলে ক্লিনআপ ফাংশন ট্রিগার করা
+trap cleanup EXIT INT TERM
+
 main() {
-    echo "🚀 开始启动所有 mini services..."
+    echo "🚀 সকল mini services চালু করা হচ্ছে..."
     
-    # 检查 dist 目录是否存在
+    # dist ডিরেক্টরি বিদ্যমান কিনা তা পরীক্ষা করা
     if [ ! -d "$DIST_DIR" ]; then
-        echo "ℹ️  目录 $DIST_DIR 不存在"
+        echo "ℹ️  ডিরেক্টরি $DIST_DIR পাওয়া যায়নি"
         return
     fi
     
-    # 查找所有 mini-service-*.js 文件
+    # সকল mini-service-*.js ফাইল খোঁজা হচ্ছে
     service_files=""
     for file in "$DIST_DIR"/mini-service-*.js; do
         if [ -f "$file" ]; then
@@ -62,26 +65,26 @@ main() {
         fi
     done
     
-    # 计算服务文件数量
+    # সার্ভিস ফাইলের সংখ্যা গণনা করা হচ্ছে
     service_count=0
     for file in $service_files; do
         service_count=$((service_count + 1))
     done
     
     if [ $service_count -eq 0 ]; then
-        echo "ℹ️  未找到任何 mini service 文件"
+        echo "ℹ️  কোনো mini service ফাইল পাওয়া যায়নি"
         return
     fi
     
-    echo "📦 找到 $service_count 个服务，开始启动..."
+    echo "📦 $service_count টি সার্ভিস পাওয়া গেছে, চালু করা হচ্ছে..."
     echo ""
     
-    # 启动每个服务
+    # প্রতিটি সার্ভিস চালু করা
     for file in $service_files; do
         service_name=$(basename "$file" .js | sed 's/mini-service-//')
-        echo "▶️  启动服务: $service_name..."
+        echo "▶️  সার্ভিস চালু করা হচ্ছে: $service_name..."
         
-        # 使用 bun 运行服务（后台运行）
+        # bun দিয়ে সার্ভিস ব্যাকগ্রাউন্ডে চালানো হচ্ছে
         bun "$file" &
         pid=$!
         if [ -z "$pids" ]; then
@@ -90,18 +93,24 @@ main() {
             pids="$pids $pid"
         fi
         
-        # 等待一小段时间检查进程是否成功启动
+        # প্রসেসটি সফলভাবে চালু হয়েছে কিনা পরীক্ষা করার জন্য সামান্য সময় অপেক্ষা
         sleep 0.5
         if ! kill -0 "$pid" 2>/dev/null; then
-            echo "❌ $service_name 启动失败"
-            # 从字符串中移除失败的 PID
-            pids=$(echo "$pids" | sed "s/\b$pid\b//" | sed 's/  */ /g' | sed 's/^ *//' | sed 's/ *$//')
+            echo "❌ $service_name চালুকরণ ব্যর্থ হয়েছে"
+            # ব্যর্থ PID-টি পোর্টেবল উপায়ে স্ট্রিং থেকে সরিয়ে ফেলা হচ্ছে (POSIX-compliant)
+            updated_pids=""
+            for p in $pids; do
+                if [ "$p" != "$pid" ]; then
+                    updated_pids="$updated_pids $p"
+                fi
+            done
+            pids="$updated_pids"
         else
-            echo "✅ $service_name 已启动 (PID: $pid)"
+            echo "✅ $service_name চালু হয়েছে (PID: $pid)"
         fi
     done
     
-    # 计算运行中的服务数量
+    # চলমান সার্ভিসের সংখ্যা গণনা করা হচ্ছে
     running_count=0
     for pid in $pids; do
         if kill -0 "$pid" 2>/dev/null; then
@@ -110,14 +119,13 @@ main() {
     done
     
     echo ""
-    echo "🎉 所有服务已启动！共 $running_count 个服务正在运行"
+    echo "🎉 সকল সার্ভিস চালু হয়েছে! মোট $running_count টি সার্ভিস চলছে"
     echo ""
-    echo "💡 按 Ctrl+C 停止所有服务"
+    echo "💡 সমস্ত সার্ভিস বন্ধ করতে Ctrl+C চাপুন"
     echo ""
     
-    # 等待所有后台进程
+    # সকল ব্যাকগ্রাউন্ড প্রসেসের জন্য অপেক্ষা
     wait
 }
 
 main
-

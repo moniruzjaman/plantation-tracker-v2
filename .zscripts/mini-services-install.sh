@@ -1,65 +1,171 @@
 #!/bin/bash
 
-# 配置项
-ROOT_DIR="/home/z/my-project/mini-services"
+# stderr-কে stdout-এ রিডাইরেক্ট করা হচ্ছে, যাতে stderr আউটপুটের কারণে execute_command ব্যর্থ না হয়
+exec 2>&1
 
-main() {
-    echo "🚀 开始批量安装依赖..."
+set -e
+
+# স্ক্রিপ্টটি যে ডিরেক্টরিতে আছে তা বের করা (.zscripts ডিরেক্টরি)
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+
+# Next.js প্রজেক্টের পাথ (ডিফল্ট /home/z/my-project, তবে এনভায়রনমেন্ট ভেরিয়েবল থাকলে সেটি ব্যবহার করবে)
+NEXTJS_PROJECT_DIR="${NEXTJS_PROJECT_DIR:-/home/z/my-project}"
+
+# Next.js প্রজেক্ট ডিরেক্টরিটি বিদ্যমান কিনা তা পরীক্ষা করা
+if [ ! -d "$NEXTJS_PROJECT_DIR" ]; then
+    echo "❌ ত্রুটি: Next.js প্রজেক্ট ডিরেক্টরি পাওয়া যায়নি: $NEXTJS_PROJECT_DIR"
+    exit 1
+fi
+
+echo "🚀 Next.js অ্যাপ্লিকেশন এবং mini-services বিল্ড করা শুরু হচ্ছে..."
+echo "📁 Next.js প্রজেক্ট পাথ: $NEXTJS_PROJECT_DIR"
+
+# Next.js প্রজেক্ট ডিরেক্টরিতে নেভিগেট করা
+cd "$NEXTJS_PROJECT_DIR" || exit 1
+
+# এনভায়রনমেন্ট ভেরিয়েবল সেট করা
+export NEXT_TELEMETRY_DISABLED=1
+
+BUILD_DIR="/tmp/build_fullstack_${BUILD_ID:-default}"
+echo "📁 বিল্ড ডিরেক্টরি পরিষ্কার ও তৈরি করা হচ্ছে: $BUILD_DIR"
+mkdir -p "$BUILD_DIR"
+
+# ডিপেন্ডেন্সি ইনস্টল করা
+echo "📦 ডিপেন্ডেন্সি ইনস্টল করা হচ্ছে..."
+bun install
+
+# Next.js অ্যাপ্লিকেশন বিল্ড করা
+echo "🔨 Next.js অ্যাপ্লিকেশন বিল্ড করা হচ্ছে..."
+bun run build
+
+# standalone সার্ভার এন্ট্রি পয়েন্ট তৈরি হয়েছে কিনা পরীক্ষা করা (ডিপ্লয়মেন্ট গার্ড)।
+if [ ! -f ".next/standalone/server.js" ]; then
+    echo "⚠️  .next/standalone/server.js তৈরি হয়নি, next.config-এর output কনফিগারেশন অটো-ফিক্স করা হচ্ছে..."
     
-    # 检查 rootdir 是否存在
-    if [ ! -d "$ROOT_DIR" ]; then
-        echo "ℹ️  目录 $ROOT_DIR 不存在，跳过安装"
-        return
+    # set -e এড়িয়ে চলার জন্য || true যুক্ত করা হয়েছে
+    NEXT_CONFIG_FILE="$(ls next.config.ts next.config.js next.config.mjs next.config.cjs 2>/dev/null | head -1 || true)"
+
+    if [ -z "$NEXT_CONFIG_FILE" ]; then
+        echo "❌ বিল্ড ব্যর্থ: কোনো next.config.* পাওয়া যায়নি, standalone আউটপুট তৈরি করা অসম্ভব।"
+        exit 1
     fi
-    
-    # 统计变量
-    success_count=0
-    fail_count=0
-    failed_projects=""
-    
-    # 遍历 mini-services 目录下的所有文件夹
-    for dir in "$ROOT_DIR"/*; do
-        # 检查是否是目录且包含 package.json
-        if [ -d "$dir" ] && [ -f "$dir/package.json" ]; then
-            project_name=$(basename "$dir")
-            echo ""
-            echo "📦 正在安装依赖: $project_name..."
-            
-            # 进入项目目录并执行 bun install
-            if (cd "$dir" && bun install); then
-                echo "✅ $project_name 依赖安装成功"
-                success_count=$((success_count + 1))
-            else
-                echo "❌ $project_name 依赖安装失败"
-                fail_count=$((fail_count + 1))
-                if [ -z "$failed_projects" ]; then
-                    failed_projects="$project_name"
-                else
-                    failed_projects="$failed_projects $project_name"
-                fi
-            fi
-        fi
-    done
-    
-    # 汇总结果
-    echo ""
-    echo "=================================================="
-    if [ $success_count -gt 0 ] || [ $fail_count -gt 0 ]; then
-        echo "🎉 安装完成！"
-        echo "✅ 成功: $success_count 个"
-        if [ $fail_count -gt 0 ]; then
-            echo "❌ 失败: $fail_count 个"
-            echo ""
-            echo "失败的项目:"
-            for project in $failed_projects; do
-                echo "  - $project"
-            done
-        fi
-    else
-        echo "ℹ️  未找到任何包含 package.json 的项目"
+
+    if grep -Eq "output\s*:\s*['\"]standalone['\"]" "$NEXT_CONFIG_FILE"; then
+        echo "❌ বিল্ড ব্যর্থ: $NEXT_CONFIG_FILE ফাইলটিতে output:\"standalone\" রয়েছে, কিন্তু তবুও .next/standalone/server.js তৈরি হয়নি।"
+        echo "   দয়া করে ওপরের লগ থেকে মূল ভুলটি পরীক্ষা করুন।"
+        exit 1
     fi
-    echo "=================================================="
-}
 
-main
+    if grep -Eq "output\s*:\s*['\"]" "$NEXT_CONFIG_FILE"; then
+        echo "❌ বিল্ড ব্যর্থ: $NEXT_CONFIG_FILE ফাইলে standalone ব্যতীত অন্য output (যেমন \"export\") ঘোষণা করা আছে।"
+        echo "   বর্তমান ডিপ্লয়মেন্টের জন্য output:\"standalone\" প্রয়োজন। দয়া করে এটি পরিবর্তন করুন।"
+        exit 1
+    fi
 
+    echo "🔧 $NEXT_CONFIG_FILE-এ output:\"standalone\" পাওয়া যায়নি, স্বয়ংক্রিয়ভাবে ইনজেক্ট করে পুনরায় চেষ্টা করা হচ্ছে..."
+    cp "$NEXT_CONFIG_FILE" "${NEXT_CONFIG_FILE}.zbak"
+
+    # কনফিগারেশন অবজেক্ট বা defineConfig-এর সূচনা পয়েন্টে output: "standalone" ইনজেক্ট করা
+    perl -0pi -e 's/((?:const\s+\w+[^=]*=|export\s+default(?:\s+defineConfig\()?|module\.exports\s*=)\s*\{)/$1\n  output: "standalone",/' "$NEXT_CONFIG_FILE"
+
+    if ! grep -Eq "output\s*:\s*['\"]standalone['\"]" "$NEXT_CONFIG_FILE"; then
+        echo "❌ ম্যানুয়ালি output:\"standalone\" যুক্ত করা প্রয়োজন, স্বয়ংক্রিয় ইনজেকশন ব্যর্থ হয়েছে।"
+        echo "   বর্তমান $NEXT_CONFIG_FILE কন্টেন্ট:"
+        cat "$NEXT_CONFIG_FILE"
+        mv "${NEXT_CONFIG_FILE}.zbak" "$NEXT_CONFIG_FILE"
+        exit 1
+    fi
+
+    echo "🔨 output:\"standalone\" ইনজেক্ট করা হয়েছে, পুনরায় বিল্ড হচ্ছে..."
+    bun run build
+
+    if [ ! -f ".next/standalone/server.js" ]; then
+        echo "❌ ইনজেকশন দেওয়ার পরও .next/standalone/server.js তৈরি করা সম্ভব হয়নি।"
+        rm -f "${NEXT_CONFIG_FILE}.zbak"
+        exit 1
+    fi
+    echo "✅ অটো-ফিক্স সফল: standalone সার্ভার এন্ট্রি পয়েন্ট তৈরি হয়েছে।"
+    rm -f "${NEXT_CONFIG_FILE}.zbak"
+fi
+
+# mini-services বিল্ড করা
+if [ -d "$NEXTJS_PROJECT_DIR/mini-services" ]; then
+    echo "🔨 mini-services বিল্ড করা হচ্ছে..."
+    [ -f "$SCRIPT_DIR/mini-services-install.sh" ] && sh "$SCRIPT_DIR/mini-services-install.sh"
+    [ -f "$SCRIPT_DIR/mini-services-build.sh" ] && sh "$SCRIPT_DIR/mini-services-build.sh"
+
+    if [ -f "$SCRIPT_DIR/mini-services-start.sh" ]; then
+        echo "  - mini-services-start.sh কে $BUILD_DIR ডিরেক্টরিতে কপি করা হচ্ছে"
+        cp "$SCRIPT_DIR/mini-services-start.sh" "$BUILD_DIR/mini-services-start.sh"
+        chmod +x "$BUILD_DIR/mini-services-start.sh"
+    fi
+else
+    echo "ℹ️  mini-services ডিরেক্টরি পাওয়া যায়নি, স্কিপ করা হলো"
+fi
+
+# সমস্ত বিল্ড আউটপুট টেম্পোরারি বিল্ড ডিরেক্টরিতে কপি করা
+echo "📦 সকল আউটপুট $BUILD_DIR-এ সংগ্রহ করা হচ্ছে..."
+
+# Next.js standalone আউটপুট কপি করা
+if [ -d ".next/standalone" ]; then
+    echo "  - .next/standalone কপি করা হচ্ছে"
+    mkdir -p "$BUILD_DIR/next-service-dist"
+    cp -R .next/standalone/. "$BUILD_DIR/next-service-dist/"
+fi
+
+# Next.js স্ট্যাটিক ফাইল কপি করা
+if [ -d ".next/static" ]; then
+    echo "  - .next/static কপি করা হচ্ছে"
+    mkdir -p "$BUILD_DIR/next-service-dist/.next/static"
+    cp -R .next/static/. "$BUILD_DIR/next-service-dist/.next/static/"
+fi
+
+# public ডিরেক্টরি কপি করা
+if [ -d "public" ]; then
+    echo "  - public কপি করা হচ্ছে"
+    mkdir -p "$BUILD_DIR/next-service-dist/public"
+    cp -R public/. "$BUILD_DIR/next-service-dist/public/"
+fi
+
+# টেস্ট এনভায়রনমেন্টের ডাটাবেসটি প্রডাকশন বান্ডেলে কপি করা
+if [ -f "./db/custom.db" ]; then
+    echo "🗄️  টেস্ট ডাটাবেস বিল্ড প্যাকেজে কপি করা হচ্ছে..."
+    mkdir -p "$BUILD_DIR/db"
+    cp -R ./db/. "$BUILD_DIR/db/"
+
+    echo "🗄️  ডাটাবেস স্ট্রাকচার সিঙ্ক করা হচ্ছে..."
+    DATABASE_URL="file:$BUILD_DIR/db/custom.db" bun run db:push
+    echo "✅ বিল্ড ডাটাবেস প্রস্তুতি সম্পূর্ণ"
+    ls -lah "$BUILD_DIR/db"
+else
+    echo "❌ টেস্ট ডাটাবেস ফাইলটি (./db/custom.db) পাওয়া যায়নি, বিল্ড বজায় রাখা সম্ভব নয়।"
+    exit 1
+fi
+
+# Caddyfile কপি করা (যদি থাকে)
+if [ -f "Caddyfile" ]; then
+    echo "  - Caddyfile কপি করা হচ্ছে"
+    cp Caddyfile "$BUILD_DIR/"
+else
+    echo "ℹ️  Caddyfile ফাইলটি নেই, স্কিপ করা হলো"
+fi
+
+# start.sh স্ক্রিপ্ট কপি করা
+if [ -f "$SCRIPT_DIR/start.sh" ]; then
+    echo "  - start.sh ফাইলটি $BUILD_DIR-এ কপি করা হচ্ছে"
+    cp "$SCRIPT_DIR/start.sh" "$BUILD_DIR/start.sh"
+    chmod +x "$BUILD_DIR/start.sh"
+fi
+
+# $BUILD_DIR.tar.gz ফরম্যাটে আর্কাইভ করা
+PACKAGE_FILE="${BUILD_DIR}.tar.gz"
+echo ""
+echo "📦 বিল্ড আউটপুটকে $PACKAGE_FILE ফাইলে জিপ/আর্কাইভ করা হচ্ছে..."
+cd "$BUILD_DIR" || exit 1
+tar -czf "$PACKAGE_FILE" .
+cd - > /dev/null || exit 1
+
+echo ""
+echo "✅ বিল্ড সম্পূর্ণ! সমস্ত ফাইল $PACKAGE_FILE প্যাকেজে সংরক্ষিত হয়েছে।"
+echo "📊 ফাইল সাইজ:"
+ls -lh "$PACKAGE_FILE"

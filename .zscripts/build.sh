@@ -1,180 +1,174 @@
 #!/bin/bash
 
-# 将 stderr 重定向到 stdout，避免 execute_command 因为 stderr 输出而报错
+# stderr-কে stdout-এ রিডাইরেক্ট করা হচ্ছে, যাতে stderr আউটপুটের কারণে execute_command ব্যর্থ না হয়
 exec 2>&1
 
 set -e
 
-# 获取脚本所在目录（.zscripts 目录，即 workspace-agent/.zscripts）
-# 使用 $0 获取脚本路径（兼容 sh 和 bash）
+# স্ক্রিপ্টটি যে ডিরেক্টরিতে আছে তা বের করা (.zscripts ডিরেক্টরি, অর্থাৎ workspace-agent/.zscripts)
+# $0 ব্যবহার করা হচ্ছে স্ক্রিপ্টের পাথ পাওয়ার জন্য (sh এবং bash উভয়ের জন্য উপযোগী)
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 
-# Next.js 项目路径
+# Next.js প্রজেক্টের পাথ
 NEXTJS_PROJECT_DIR="/home/z/my-project"
 
-# 检查 Next.js 项目目录是否存在
+# Next.js প্রজেক্ট ডিরেক্টরিটি বিদ্যমান কিনা তা পরীক্ষা করা
 if [ ! -d "$NEXTJS_PROJECT_DIR" ]; then
-    echo "❌ 错误: Next.js 项目目录不存在: $NEXTJS_PROJECT_DIR"
+    echo "❌ ত্রুটি: Next.js প্রজেক্ট ডিরেক্টরি পাওয়া যায়নি: $NEXTJS_PROJECT_DIR"
     exit 1
 fi
 
-echo "🚀 开始构建 Next.js 应用和 mini-services..."
-echo "📁 Next.js 项目路径: $NEXTJS_PROJECT_DIR"
+echo "🚀 Next.js অ্যাপ্লিকেশন এবং mini-services বিল্ড করা শুরু হচ্ছে..."
+echo "📁 Next.js প্রজেক্ট পাথ: $NEXTJS_PROJECT_DIR"
 
-# 切换到 Next.js 项目目录
+# Next.js প্রজেক্ট ডিরেক্টরিতে নেভিগেট করা
 cd "$NEXTJS_PROJECT_DIR" || exit 1
 
-# 设置环境变量
+# এনভায়রনমেন্ট ভেরিয়েবল সেট করা
 export NEXT_TELEMETRY_DISABLED=1
 
-BUILD_DIR="/tmp/build_fullstack_$BUILD_ID"
-echo "📁 清理并创建构建目录: $BUILD_DIR"
+BUILD_DIR="/tmp/build_fullstack_${BUILD_ID:-default}"
+echo "📁 বিল্ড ডিরেক্টরি পরিষ্কার ও তৈরি করা হচ্ছে: $BUILD_DIR"
 mkdir -p "$BUILD_DIR"
 
-# 安装依赖
-echo "📦 安装依赖..."
+# ডিপেন্ডেন্সি ইনস্টল করা
+echo "📦 ডিপেন্ডেন্সি ইনস্টল করা হচ্ছে..."
 bun install
 
-# 构建 Next.js 应用
-echo "🔨 构建 Next.js 应用..."
+# Next.js অ্যাপ্লিকেশন বিল্ড করা
+echo "🔨 Next.js অ্যাপ্লিকেশন বিল্ড করা হচ্ছে..."
 bun run build
 
-# 校验 standalone 服务端入口是否生成（部署成功率守卫）。
-# Next 仅在 next.config 含 output:"standalone" 时产出 .next/standalone/server.js。
-# 若用户/AI 编辑项目时改写或删除了该配置，bun run build 仍会成功（static 照常
-# 产出、退出码 0），但 standalone 缺失——打出的包里没有 server.js，部署到 FC 后
-# start.sh 找不到 next-service-dist/server.js → 不启动 Next → Caddy:81 反代空的
-# 3000 → FC 健康检查 120s 超时失败（线上 warmup_412 / FunctionNotStarted 的主因）。
-# 这里做一次自愈：仅在确实缺失时，给 next.config 补回 output:"standalone" 并重建。
-# 正常项目（已生成 server.js）整段跳过，不读写任何用户文件。
+# standalone সার্ভার এন্ট্রি পয়েন্ট তৈরি হয়েছে কিনা পরীক্ষা করা (ডিপ্লয়মেন্ট গার্ড)।
+# Next.js কেবল তখনই .next/standalone/server.js তৈরি করে যখন next.config-এ output:"standalone" থাকে।
+# যদি ইউজার/AI এডিট করার সময় এই কনফিগ বদলে দেয় বা মুছে ফেলে, তবে bun run build সফল দেখালেও standalone ফাইল অনুপস্থিত থাকবে।
+# এটি স্বয়ংক্রিয়ভাবে ঠিক করার চেষ্টা করবে: অনুপস্থিত থাকলে next.config-এ output:"standalone" যোগ করে পুনরায় বিল্ড করবে।
 if [ ! -f ".next/standalone/server.js" ]; then
-    echo "⚠️  构建未产出 .next/standalone/server.js，开始自愈 next.config 的 output 配置..."
+    echo "⚠️  .next/standalone/server.js তৈরি হয়নি, next.config-এর output কনফিগারেশন অটো-ফিক্স করা হচ্ছে..."
     NEXT_CONFIG_FILE="$(ls next.config.ts next.config.js next.config.mjs next.config.cjs 2>/dev/null | head -1)"
 
     if [ -z "$NEXT_CONFIG_FILE" ]; then
-        echo "❌ 构建失败：未找到 next.config.*，无法生成 standalone 部署产物。"
+        echo "❌ বিল্ড ব্যর্থ: কোনো next.config.* পাওয়া যায়নি, standalone আউটপুট তৈরি করা অসম্ভব।"
         exit 1
     fi
 
     if grep -Eq "output\s*:\s*['\"]standalone['\"]" "$NEXT_CONFIG_FILE"; then
-        # 已声明 standalone 却仍没产出 server.js，说明不是配置缺失（可能 build 真
-        # 出错、自定义 distDir 等）。不臆改用户配置，直接失败并暴露原因。
-        echo "❌ 构建失败：$NEXT_CONFIG_FILE 已含 output:\"standalone\"，但仍未生成 .next/standalone/server.js。"
-        echo "   请检查上方构建日志中的报错或项目自定义的构建配置。"
+        # যদি কনফিগারে বলা থাকে কিন্তু তবুও server.js না তৈরি হয়, তবে অন্য কোনো অভ্যন্তরীণ ভুল আছে
+        echo "❌ বিল্ড ব্যর্থ: $NEXT_CONFIG_FILE ফাইলটিতে output:\"standalone\" রয়েছে, কিন্তু তবুও .next/standalone/server.js তৈরি হয়নি।"
+        echo "   দয়া করে ওপরের লগ থেকে মূল ভুলটি পরীক্ষা করুন।"
         exit 1
     fi
 
     if grep -Eq "output\s*:\s*['\"]" "$NEXT_CONFIG_FILE"; then
-        # 已显式声明了其它 output（如 "export" 静态导出 / "standalone" 之外的值）。
-        # "export" 与本部署模型（standalone + 自定义 server）互斥——不能注入第二个
-        # output 覆盖用户意图（JS 对象重复 key 后者生效，注入也无效）。明确失败。
-        echo "❌ 构建失败：$NEXT_CONFIG_FILE 已声明非 standalone 的 output（如 \"export\" 静态导出），与当前部署模型不兼容。"
-        echo "   当前部署需要 output:\"standalone\"。请改为 standalone，或确认该项目是否应走静态托管而非部署沙箱。"
+        # যদি অন্য কোনো output (যেমন "export") সেট করা থাকে
+        echo "❌ বিল্ড ব্যর্থ: $NEXT_CONFIG_FILE ফাইালে standalone ব্যতীত অন্য output (যেমন \"export\") ঘোষণা করা আছে।"
+        echo "   বর্তমান ডিপ্লয়মেন্টের জন্য output:\"standalone\" প্রয়োজন। দয়া করে এটি পরিবর্তন করুন।"
         exit 1
     fi
 
-    echo "🔧 检测到 $NEXT_CONFIG_FILE 缺少 output:\"standalone\"，自动注入后重新构建..."
+    echo "🔧 $NEXT_CONFIG_FILE-এ output:\"standalone\" পাওয়া যায়নি, স্বয়ংক্রিয়ভাবে ইনজেক্ট করে পুনরায় চেষ্টা করা হচ্ছে..."
     cp "$NEXT_CONFIG_FILE" "${NEXT_CONFIG_FILE}.zbak"
-    # 在第一个配置对象字面量起始的 { 之后插入 output:"standalone"，
-    # 覆盖脚手架常见写法：const nextConfig...= {  /  export default {  /  module.exports = {
+
+    # প্রথম কনফিগারেশন অবজেক্টের { এর পর output: "standalone" ইনজেক্ট করা
     perl -0pi -e 's/((?:const\s+\w+[^=]*=|export\s+default|module\.exports\s*=)\s*\{)/$1\n  output: "standalone",/' "$NEXT_CONFIG_FILE"
 
     if ! grep -Eq "output\s*:\s*['\"]standalone['\"]" "$NEXT_CONFIG_FILE"; then
-        echo "❌ 未能匹配到可注入的配置对象，next.config 写法非常规，需人工添加 output:\"standalone\"。"
-        echo "   当前 $NEXT_CONFIG_FILE 内容："
+        echo "❌ ম্যানুয়ালি output:\"standalone\" যুক্ত করা প্রয়োজন, স্বয়ংক্রিয় ইনজেকশন ব্যর্থ হয়েছে।"
+        echo "   বর্তমান $NEXT_CONFIG_FILE কন্টেন্ট:"
         cat "$NEXT_CONFIG_FILE"
         mv "${NEXT_CONFIG_FILE}.zbak" "$NEXT_CONFIG_FILE"
         exit 1
     fi
 
-    echo "🔨 已注入 output:\"standalone\"，重新构建..."
+    echo "🔨 output:\"standalone\" ইনজেক্ট করা হয়েছে, পুনরায় বিল্ড হচ্ছে..."
     bun run build
 
     if [ ! -f ".next/standalone/server.js" ]; then
-        echo "❌ 注入 output:\"standalone\" 并重建后，仍未生成 .next/standalone/server.js。"
+        echo "❌ ইনজেকশন দেওয়ার পরও .next/standalone/server.js তৈরি করা সম্ভব হয়নি।"
+        rm -f "${NEXT_CONFIG_FILE}.zbak"
         exit 1
     fi
-    echo "✅ 自愈成功：standalone 服务端入口已生成。"
+    echo "✅ অটো-ফিক্স সফল: standalone সার্ভার এন্ট্রি পয়েন্ট তৈরি হয়েছে।"
+    rm -f "${NEXT_CONFIG_FILE}.zbak"
 fi
 
-# 构建 mini-services
-# 检查 Next.js 项目目录下是否有 mini-services 目录
+# mini-services বিল্ড করা
+# Next.js প্রজেক্ট ডিরেক্টরিতে mini-services ডিরেক্টরি আছে কিনা পরীক্ষা করা
 if [ -d "$NEXTJS_PROJECT_DIR/mini-services" ]; then
-    echo "🔨 构建 mini-services..."
-    # 使用 workspace-agent 目录下的 mini-services 脚本
+    echo "🔨 mini-services বিল্ড করা হচ্ছে..."
+    # workspace-agent ডিরেক্টরির mini-services স্ক্রিপ্ট ব্যবহার করা
     sh "$SCRIPT_DIR/mini-services-install.sh"
     sh "$SCRIPT_DIR/mini-services-build.sh"
 
-    # 复制 mini-services-start.sh 到 mini-services-dist 目录
-    echo "  - 复制 mini-services-start.sh 到 $BUILD_DIR"
+    # mini-services-start.sh ফাইলটি mini-services-dist ডিরেক্টরিতে কপি করা
+    echo "  - mini-services-start.sh কে $BUILD_DIR ডিরেক্টরিতে কপি করা হচ্ছে"
     cp "$SCRIPT_DIR/mini-services-start.sh" "$BUILD_DIR/mini-services-start.sh"
     chmod +x "$BUILD_DIR/mini-services-start.sh"
 else
-    echo "ℹ️  mini-services 目录不存在，跳过"
+    echo "ℹ️  mini-services ডিরেক্টরি পাওয়া যায়নি, স্কিপ করা হলো"
 fi
 
-# 将所有构建产物复制到临时构建目录
-echo "📦 收集构建产物到 $BUILD_DIR..."
+# সমস্ত বিল্ড আউটপুট টেম্পোরারি বিল্ড ডিরেক্টরিতে কপি করা
+echo "📦 সকল আউটপুট $BUILD_DIR-এ সংগ্রহ করা হচ্ছে..."
 
-# 复制 Next.js standalone 构建输出
+# Next.js standalone আউটপুট কপি করা
 if [ -d ".next/standalone" ]; then
-    echo "  - 复制 .next/standalone"
-    cp -r .next/standalone "$BUILD_DIR/next-service-dist/"
+    echo "  - .next/standalone কপি করা হচ্ছে"
+    mkdir -p "$BUILD_DIR/next-service-dist"
+    cp -R .next/standalone/. "$BUILD_DIR/next-service-dist/"
 fi
 
-# 复制 Next.js 静态文件
+# Next.js স্ট্যাটিক ফাইল কপি করা
 if [ -d ".next/static" ]; then
-    echo "  - 复制 .next/static"
-    mkdir -p "$BUILD_DIR/next-service-dist/.next"
-    cp -r .next/static "$BUILD_DIR/next-service-dist/.next/"
+    echo "  - .next/static কপি করা হচ্ছে"
+    mkdir -p "$BUILD_DIR/next-service-dist/.next/static"
+    cp -R .next/static/. "$BUILD_DIR/next-service-dist/.next/static/"
 fi
 
-# 复制 public 目录
+# public ডিরেক্টরি কপি করা
 if [ -d "public" ]; then
-    echo "  - 复制 public"
-    cp -r public "$BUILD_DIR/next-service-dist/"
+    echo "  - public কপি করা হচ্ছে"
+    mkdir -p "$BUILD_DIR/next-service-dist/public"
+    cp -R public/. "$BUILD_DIR/next-service-dist/public/"
 fi
 
-# 将测试环境数据库复制到构建产物中，生产环境直接使用这份数据库
+# টেস্ট এনভায়রনমেন্টের ডাটাবেসটি প্রডাকশন বান্ডেলে কপি করা
 if [ -f "./db/custom.db" ]; then
-    echo "🗄️  复制测试环境数据库到构建产物..."
+    echo "🗄️  টেস্ট ডাটাবেস বিল্ড প্যাকেজে কপি করা হচ্ছে..."
     mkdir -p "$BUILD_DIR/db"
-    cp -r ./db/. "$BUILD_DIR/db/"
+    cp -R ./db/. "$BUILD_DIR/db/"
 
-    echo "🗄️  同步构建产物中的数据库结构..."
+    echo "🗄️  ডাটাবেস স্ট্রাকচার সিঙ্ক করা হচ্ছে..."
     DATABASE_URL="file:$BUILD_DIR/db/custom.db" bun run db:push
-    echo "✅ 构建产物数据库已准备完成"
+    echo "✅ বিল্ড ডাটাবেস প্রস্তুতি সম্পূর্ণ"
     ls -lah "$BUILD_DIR/db"
 else
-    echo "❌ 未找到测试环境数据库文件 ./db/custom.db，无法继续构建生产包"
+    echo "❌ টেস্ট ডাটাবেস ফাইলটি (./db/custom.db) পাওয়া যায়নি, বিল্ড বজায় রাখা সম্ভব নয়।"
     exit 1
 fi
 
-# 复制 Caddyfile（如果存在）
+# Caddyfile কপি করা (যদি থাকে)
 if [ -f "Caddyfile" ]; then
-    echo "  - 复制 Caddyfile"
+    echo "  - Caddyfile কপি করা হচ্ছে"
     cp Caddyfile "$BUILD_DIR/"
 else
-    echo "ℹ️  Caddyfile 不存在，跳过"
+    echo "ℹ️  Caddyfile ফাইলটি নেই, স্কিপ করা হলো"
 fi
 
-# 复制 start.sh 脚本
-echo "  - 复制 start.sh 到 $BUILD_DIR"
+# start.sh স্ক্রিপ্ট কপি করা
+echo "  - start.sh ফাইলটি $BUILD_DIR-এ কপি করা হচ্ছে"
 cp "$SCRIPT_DIR/start.sh" "$BUILD_DIR/start.sh"
 chmod +x "$BUILD_DIR/start.sh"
 
-# 打包到 $BUILD_DIR.tar.gz
+# $BUILD_DIR.tar.gz ফরম্যাটে আর্কাইভ করা
 PACKAGE_FILE="${BUILD_DIR}.tar.gz"
 echo ""
-echo "📦 打包构建产物到 $PACKAGE_FILE..."
+echo "📦 বিল্ড আউটপুটকে $PACKAGE_FILE ফাইলে জিপ/আর্কাইভ করা হচ্ছে..."
 cd "$BUILD_DIR" || exit 1
 tar -czf "$PACKAGE_FILE" .
 cd - > /dev/null || exit 1
 
-# # 清理临时目录
-# rm -rf "$BUILD_DIR"
-
 echo ""
-echo "✅ 构建完成！所有产物已打包到 $PACKAGE_FILE"
-echo "📊 打包文件大小:"
+echo "✅ বিল্ড সম্পূর্ণ! সমস্ত ফাইল $PACKAGE_FILE প্যাকেজে সংরক্ষিত হয়েছে।"
+echo "📊 ফাইল সাইজ:"
 ls -lh "$PACKAGE_FILE"
